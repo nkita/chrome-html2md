@@ -24,67 +24,110 @@ if (window.isExtensionActive) {
   const highlightOverlay = document.createElement('div');
   Object.assign(highlightOverlay.style, {
     position: 'absolute',
-    backgroundColor: 'rgba(66, 133, 244, 0.3)', // DevTools-like blue
-    border: '1px solid #4285F4',
-    borderRadius: '3px',
+    background: 'linear-gradient(135deg, rgba(66, 133, 244, 0.15), rgba(66, 133, 244, 0.25))',
+    border: '2px solid rgba(66, 133, 244, 0.6)',
+    borderRadius: '8px',
+    boxShadow: '0 4px 20px rgba(66, 133, 244, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+    backdropFilter: 'blur(4px)',
+    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
     zIndex: '9998',
-    pointerEvents: 'none' // Make sure it doesn't intercept mouse events
+    pointerEvents: 'none',
+    opacity: '0'
   });
 
   const infoLabel = document.createElement('div');
   Object.assign(infoLabel.style, {
     position: 'absolute',
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    background: 'rgba(0, 0, 0, 0.85)',
+    backdropFilter: 'blur(12px)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '6px',
+    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
     color: 'white',
-    fontFamily: 'sans-serif',
-    fontSize: '12px',
-    padding: '4px 8px',
-    borderRadius: '3px',
+    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontSize: '13px',
+    fontWeight: '500',
+    padding: '6px 12px',
+    transition: 'all 0.2s ease-out',
     zIndex: '9999',
-    pointerEvents: 'none'
+    pointerEvents: 'none',
+    opacity: '0'
   });
 
   const infoBanner = document.createElement('div');
-  infoBanner.innerHTML = 'Select an element. <br><b>Click</b> to copy Markdown. <br><b>Shift+Click</b> to include page metadata. <br>Press <b>Esc</b> to cancel.';
+  infoBanner.innerHTML = '🎯 Click to copy • ⇧+Click for context • Esc to exit';
   Object.assign(infoBanner.style, {
     position: 'fixed',
-    top: '10px',
+    top: '16px',
     left: '50%',
-    transform: 'translateX(-50%)',
-    backgroundColor: '#333',
-    color: 'white',
-    padding: '12px 24px',
-    borderRadius: '5px',
-    zIndex: '10000',
-    fontSize: '16px',
+    transform: 'translateX(-50%) translateY(-20px)',
+    background: 'rgba(255, 255, 255, 0.95)',
+    backdropFilter: 'blur(20px)',
+    border: '1px solid rgba(0, 0, 0, 0.1)',
+    borderRadius: '12px',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+    color: '#1a1a1a',
+    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontSize: '14px',
+    fontWeight: '500',
+    padding: '8px 16px',
     textAlign: 'center',
-    lineHeight: '1.5'
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    zIndex: '10000',
+    opacity: '0',
+    pointerEvents: 'none'
   });
 
   document.body.appendChild(highlightOverlay);
   document.body.appendChild(infoLabel);
   document.body.appendChild(infoBanner);
 
+  // Animate banner entrance
+  setTimeout(() => {
+    infoBanner.style.opacity = '1';
+    infoBanner.style.transform = 'translateX(-50%) translateY(0)';
+  }, 100);
+
   function showNotification(message) {
     const notification = document.createElement('div');
     notification.textContent = message;
     Object.assign(notification.style, {
         position: 'fixed',
-        top: '10px',
+        top: '70px',
         left: '50%',
-        transform: 'translateX(-50%)',
-        backgroundColor: '#4CAF50',
+        transform: 'translateX(-50%) translateY(-20px)',
+        background: 'rgba(16, 185, 129, 0.95)',
+        backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255, 255, 255, 0.2)',
+        borderRadius: '12px',
+        boxShadow: '0 8px 32px rgba(16, 185, 129, 0.3)',
         color: 'white',
-        padding: '10px 20px',
-        borderRadius: '5px',
-        zIndex: '10000',
-        fontSize: '16px'
+        fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontSize: '15px',
+        fontWeight: '500',
+        padding: '12px 20px',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        zIndex: '10001',
+        opacity: '0',
+        pointerEvents: 'none'
     });
     document.body.appendChild(notification);
+    
+    // Animate entrance
     setTimeout(() => {
-        if (notification.parentNode) {
-            document.body.removeChild(notification);
-        }
+        notification.style.opacity = '1';
+        notification.style.transform = 'translateX(-50%) translateY(0)';
+    }, 50);
+    
+    // Animate exit and remove
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateX(-50%) translateY(-20px)';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                document.body.removeChild(notification);
+            }
+        }, 300);
     }, 2000);
   }
 
@@ -195,19 +238,26 @@ if (window.isExtensionActive) {
 
     const rect = selectedElement.getBoundingClientRect();
 
-    // Update highlight overlay
+    // Update highlight overlay with smooth animation
     highlightOverlay.style.width = `${rect.width}px`;
     highlightOverlay.style.height = `${rect.height}px`;
     highlightOverlay.style.top = `${rect.top + window.scrollY}px`;
     highlightOverlay.style.left = `${rect.left + window.scrollX}px`;
+    highlightOverlay.style.opacity = '1';
 
-    // Update info label
+    // Update info label with smooth animation
     const tag = selectedElement.tagName.toLowerCase();
     const id = selectedElement.id ? `#${selectedElement.id}` : '';
     const classes = Array.from(selectedElement.classList).map(c => `.${c}`).join('');
     infoLabel.textContent = `${tag}${id}${classes}`;
-    infoLabel.style.top = `${rect.top + window.scrollY - infoLabel.offsetHeight - 5}px`;
-    infoLabel.style.left = `${rect.left + window.scrollX}px`;
+    
+    // Position info label above the element
+    const labelTop = rect.top + window.scrollY - 35; // Fixed offset for better positioning
+    const labelLeft = Math.max(10, Math.min(rect.left + window.scrollX, window.innerWidth - 200));
+    
+    infoLabel.style.top = `${labelTop}px`;
+    infoLabel.style.left = `${labelLeft}px`;
+    infoLabel.style.opacity = '1';
   }
 
   function handleClick(event) {
@@ -248,9 +298,24 @@ if (window.isExtensionActive) {
     document.removeEventListener('click', handleClick, true);
     document.removeEventListener('keydown', handleKeyDown);
     
-    if (highlightOverlay.parentNode) document.body.removeChild(highlightOverlay);
-    if (infoLabel.parentNode) document.body.removeChild(infoLabel);
-    if (infoBanner.parentNode) document.body.removeChild(infoBanner);
+    // Animate elements out before removing
+    if (infoBanner.parentNode) {
+      infoBanner.style.opacity = '0';
+      infoBanner.style.transform = 'translateX(-50%) translateY(-20px)';
+    }
+    if (highlightOverlay.parentNode) {
+      highlightOverlay.style.opacity = '0';
+    }
+    if (infoLabel.parentNode) {
+      infoLabel.style.opacity = '0';
+    }
+    
+    // Remove elements after animation
+    setTimeout(() => {
+      if (highlightOverlay.parentNode) document.body.removeChild(highlightOverlay);
+      if (infoLabel.parentNode) document.body.removeChild(infoLabel);
+      if (infoBanner.parentNode) document.body.removeChild(infoBanner);
+    }, 300);
 
     window.isExtensionActive = false;
   }
