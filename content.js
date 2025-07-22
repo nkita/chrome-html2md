@@ -4,7 +4,11 @@ if (window.isExtensionActive) {
   window.isExtensionActive = true;
 
   var turndownService = new TurndownService({
-    codeBlockStyle: 'fenced'
+    codeBlockStyle: 'fenced',
+    headingStyle: 'atx',
+    bulletListMarker: '-',
+    emDelimiter: '*',
+    strongDelimiter: '**'
   });
 
   // Add a specific rule for <pre> tags to handle them as code blocks
@@ -15,6 +19,284 @@ if (window.isExtensionActive) {
       // Optionally, try to get the language from a class like 'language-js'
       const language = node.firstChild?.className?.match(/language-(\S+)/)?.[1] || '';
       return '\n\n```' + language + '\n' + code.trim() + '\n```\n\n';
+    }
+  });
+
+  // Enhanced table rule for better table conversion
+  turndownService.addRule('enhancedTable', {
+    filter: 'table',
+    replacement: function (content, node) {
+      const rows = Array.from(node.querySelectorAll('tr'));
+      if (rows.length === 0) return content;
+
+      let markdown = '\n\n';
+      let hasHeader = false;
+
+      rows.forEach((row, rowIndex) => {
+        const cells = Array.from(row.querySelectorAll('th, td'));
+        if (cells.length === 0) return;
+
+        // Check if this row contains header cells
+        const isHeaderRow = cells.some(cell => cell.tagName.toLowerCase() === 'th');
+        if (isHeaderRow) hasHeader = true;
+
+        // Build the row
+        const cellContents = cells.map(cell => {
+          return cell.textContent.trim().replace(/\|/g, '\\|').replace(/\n/g, ' ');
+        });
+
+        markdown += '| ' + cellContents.join(' | ') + ' |\n';
+
+        // Add separator after header row
+        if (isHeaderRow || (rowIndex === 0 && !hasHeader)) {
+          const separator = cells.map(() => '---').join(' | ');
+          markdown += '| ' + separator + ' |\n';
+        }
+      });
+
+      return markdown + '\n';
+    }
+  });
+
+  // Enhanced blockquote rule
+  turndownService.addRule('enhancedBlockquote', {
+    filter: 'blockquote',
+    replacement: function (content, node) {
+      const lines = content.trim().split('\n');
+      const quotedLines = lines.map(line => '> ' + line.trim()).join('\n');
+      return '\n\n' + quotedLines + '\n\n';
+    }
+  });
+
+  // Enhanced list handling for nested lists
+  turndownService.addRule('enhancedList', {
+    filter: ['ul', 'ol'],
+    replacement: function (content, node, options) {
+      const isOrdered = node.tagName.toLowerCase() === 'ol';
+      const items = Array.from(node.children).filter(child => child.tagName.toLowerCase() === 'li');
+      
+      if (items.length === 0) return content;
+
+      let markdown = '\n';
+      items.forEach((item, index) => {
+        const marker = isOrdered ? `${index + 1}. ` : '- ';
+        const itemContent = turndownService.turndown(item.innerHTML).trim();
+        const lines = itemContent.split('\n');
+        
+        markdown += marker + lines[0] + '\n';
+        // Handle multi-line list items
+        for (let i = 1; i < lines.length; i++) {
+          markdown += '  ' + lines[i] + '\n';
+        }
+      });
+
+      return markdown + '\n';
+    }
+  });
+
+  // Enhanced code inline rule
+  turndownService.addRule('enhancedCode', {
+    filter: 'code',
+    replacement: function (content, node) {
+      // Don't process code inside pre tags (already handled by preToCodeBlock)
+      if (node.parentNode && node.parentNode.tagName.toLowerCase() === 'pre') {
+        return content;
+      }
+      const code = node.textContent || '';
+      return '`' + code + '`';
+    }
+  });
+
+  // Enhanced image rule with alt text and title
+  turndownService.addRule('enhancedImage', {
+    filter: 'img',
+    replacement: function (content, node) {
+      const src = node.getAttribute('src') || '';
+      const alt = node.getAttribute('alt') || '';
+      const title = node.getAttribute('title');
+      
+      if (!src) return '';
+      
+      let markdown = `![${alt}](${src}`;
+      if (title) {
+        markdown += ` "${title}"`;
+      }
+      markdown += ')';
+      
+      return markdown;
+    }
+  });
+
+  // Enhanced link rule
+  turndownService.addRule('enhancedLink', {
+    filter: 'a',
+    replacement: function (content, node) {
+      const href = node.getAttribute('href');
+      const title = node.getAttribute('title');
+      
+      if (!href) return content;
+      
+      let markdown = `[${content}](${href}`;
+      if (title) {
+        markdown += ` "${title}"`;
+      }
+      markdown += ')';
+      
+      return markdown;
+    }
+  });
+
+  // Horizontal rule (hr) support
+  turndownService.addRule('horizontalRule', {
+    filter: 'hr',
+    replacement: function () {
+      return '\n\n---\n\n';
+    }
+  });
+
+  // Definition lists (dl, dt, dd) support
+  turndownService.addRule('definitionList', {
+    filter: 'dl',
+    replacement: function (content, node) {
+      const items = Array.from(node.children);
+      let markdown = '\n\n';
+      
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.tagName.toLowerCase() === 'dt') {
+          markdown += `**${item.textContent.trim()}**\n`;
+        } else if (item.tagName.toLowerCase() === 'dd') {
+          markdown += `: ${item.textContent.trim()}\n\n`;
+        }
+      }
+      
+      return markdown;
+    }
+  });
+
+  // Details/Summary (collapsible content) support
+  turndownService.addRule('detailsSummary', {
+    filter: 'details',
+    replacement: function (content, node) {
+      const summary = node.querySelector('summary');
+      const summaryText = summary ? summary.textContent.trim() : 'Details';
+      const detailsContent = content.replace(summaryText, '').trim();
+      
+      return `\n\n<details>\n<summary>${summaryText}</summary>\n\n${detailsContent}\n\n</details>\n\n`;
+    }
+  });
+
+  // Mark (highlighted text) support
+  turndownService.addRule('highlightedText', {
+    filter: 'mark',
+    replacement: function (content) {
+      return `==${content}==`;
+    }
+  });
+
+  // Strikethrough (del, s) support
+  turndownService.addRule('strikethrough', {
+    filter: ['del', 's', 'strike'],
+    replacement: function (content) {
+      return `~~${content}~~`;
+    }
+  });
+
+  // Subscript and Superscript support
+  turndownService.addRule('subscript', {
+    filter: 'sub',
+    replacement: function (content) {
+      return `~${content}~`;
+    }
+  });
+
+  turndownService.addRule('superscript', {
+    filter: 'sup',
+    replacement: function (content) {
+      return `^${content}^`;
+    }
+  });
+
+  // Keyboard input (kbd) support
+  turndownService.addRule('keyboard', {
+    filter: 'kbd',
+    replacement: function (content) {
+      return `<kbd>${content}</kbd>`;
+    }
+  });
+
+  // Abbreviation (abbr) support
+  turndownService.addRule('abbreviation', {
+    filter: 'abbr',
+    replacement: function (content, node) {
+      const title = node.getAttribute('title');
+      if (title) {
+        return `${content} (${title})`;
+      }
+      return content;
+    }
+  });
+
+  // Figure and figcaption support
+  turndownService.addRule('figure', {
+    filter: 'figure',
+    replacement: function (content, node) {
+      const figcaption = node.querySelector('figcaption');
+      const caption = figcaption ? figcaption.textContent.trim() : '';
+      
+      if (caption) {
+        return `\n\n${content}\n\n*${caption}*\n\n`;
+      }
+      return `\n\n${content}\n\n`;
+    }
+  });
+
+  // Address support
+  turndownService.addRule('address', {
+    filter: 'address',
+    replacement: function (content) {
+      return `\n\n*${content.trim()}*\n\n`;
+    }
+  });
+
+  // Time element support
+  turndownService.addRule('time', {
+    filter: 'time',
+    replacement: function (content, node) {
+      const datetime = node.getAttribute('datetime');
+      if (datetime && datetime !== content.trim()) {
+        return `${content} (${datetime})`;
+      }
+      return content;
+    }
+  });
+
+  // Progress and meter elements (convert to text representation)
+  turndownService.addRule('progress', {
+    filter: 'progress',
+    replacement: function (content, node) {
+      const value = node.getAttribute('value') || '0';
+      const max = node.getAttribute('max') || '100';
+      const percentage = Math.round((parseFloat(value) / parseFloat(max)) * 100);
+      return `Progress: ${percentage}% (${value}/${max})`;
+    }
+  });
+
+  turndownService.addRule('meter', {
+    filter: 'meter',
+    replacement: function (content, node) {
+      const value = node.getAttribute('value') || '0';
+      const min = node.getAttribute('min') || '0';
+      const max = node.getAttribute('max') || '1';
+      return `Meter: ${value} (range: ${min}-${max})`;
+    }
+  });
+
+  // Preserve certain HTML elements that don't have Markdown equivalents
+  turndownService.addRule('preserveHtml', {
+    filter: ['video', 'audio', 'iframe', 'embed', 'object', 'canvas', 'svg'],
+    replacement: function (content, node) {
+      return node.outerHTML;
     }
   });
 
