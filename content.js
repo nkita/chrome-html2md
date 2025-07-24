@@ -292,6 +292,76 @@ if (window.isExtensionActive) {
     }
   });
 
+  // Remove extension UI elements
+  turndownService.addRule('removeExtensionUI', {
+    filter: function (node) {
+      // Remove elements created by this extension
+      return node.nodeType === 1 && 
+             (node.className === 'html-to-markdown-extension-ui' ||
+              node.classList?.contains('html-to-markdown-extension-ui'));
+    },
+    replacement: function () {
+      return '';
+    }
+  });
+
+  // Remove script, style, and other non-content elements
+  turndownService.addRule('removeNonContent', {
+    filter: ['script', 'style', 'noscript', 'meta', 'link', 'head', 'title'],
+    replacement: function () {
+      return '';
+    }
+  });
+
+  // Remove hidden elements and comments
+  turndownService.addRule('removeHidden', {
+    filter: function (node) {
+      // Remove elements with display: none or visibility: hidden
+      if (node.nodeType === 1) { // Element node
+        const style = window.getComputedStyle(node);
+        return style.display === 'none' || style.visibility === 'hidden';
+      }
+      // Remove comment nodes
+      return node.nodeType === 8;
+    },
+    replacement: function () {
+      return '';
+    }
+  });
+
+  // Handle form elements appropriately
+  turndownService.addRule('formElements', {
+    filter: ['input', 'textarea', 'select', 'option', 'button', 'form'],
+    replacement: function (content, node) {
+      const tagName = node.tagName.toLowerCase();
+      
+      switch (tagName) {
+        case 'input':
+          const type = node.getAttribute('type') || 'text';
+          const value = node.getAttribute('value') || '';
+          const placeholder = node.getAttribute('placeholder') || '';
+          return `[${type.toUpperCase()} INPUT${value ? ': ' + value : ''}${placeholder ? ' (' + placeholder + ')' : ''}]`;
+        
+        case 'textarea':
+          return `[TEXTAREA: ${node.value || node.textContent || ''}]`;
+        
+        case 'select':
+          const selectedOption = node.querySelector('option[selected]');
+          const selectedText = selectedOption ? selectedOption.textContent : '';
+          return `[SELECT${selectedText ? ': ' + selectedText : ''}]`;
+        
+        case 'button':
+          return `[BUTTON: ${node.textContent || ''}]`;
+        
+        case 'form':
+          return content; // Process form content normally
+        
+        default:
+          return `[${tagName.toUpperCase()}]`;
+      }
+    }
+  });
+
   // Preserve certain HTML elements that don't have Markdown equivalents
   turndownService.addRule('preserveHtml', {
     filter: ['video', 'audio', 'iframe', 'embed', 'object', 'canvas', 'svg'],
@@ -304,6 +374,7 @@ if (window.isExtensionActive) {
 
   // --- UI Elements ---
   const highlightOverlay = document.createElement('div');
+  highlightOverlay.className = 'html-to-markdown-extension-ui';
   Object.assign(highlightOverlay.style, {
     position: 'absolute',
     background: 'linear-gradient(135deg, rgba(66, 133, 244, 0.15), rgba(66, 133, 244, 0.25))',
@@ -318,6 +389,7 @@ if (window.isExtensionActive) {
   });
 
   const infoLabel = document.createElement('div');
+  infoLabel.className = 'html-to-markdown-extension-ui';
   Object.assign(infoLabel.style, {
     position: 'absolute',
     background: 'rgba(0, 0, 0, 0.85)',
@@ -337,6 +409,7 @@ if (window.isExtensionActive) {
   });
 
   const infoBanner = document.createElement('div');
+  infoBanner.className = 'html-to-markdown-extension-ui';
   infoBanner.innerHTML = '🎯 Click to copy • ⇧+Click for context • Esc to exit';
   Object.assign(infoBanner.style, {
     position: 'fixed',
@@ -382,6 +455,7 @@ if (window.isExtensionActive) {
     try {
       // Create a temporary textarea element
       const textArea = document.createElement('textarea');
+      textArea.className = 'html-to-markdown-extension-ui';
       textArea.value = text;
       textArea.style.position = 'fixed';
       textArea.style.left = '-999999px';
@@ -414,6 +488,7 @@ if (window.isExtensionActive) {
 
   function showNotification(message) {
     const notification = document.createElement('div');
+    notification.className = 'html-to-markdown-extension-ui';
     notification.textContent = message;
     Object.assign(notification.style, {
       position: 'fixed',
