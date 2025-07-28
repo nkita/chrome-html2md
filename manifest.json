@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "HTML to Markdown Converter",
   "version": "1.0",
-  "description": "Converts the hovered HTML element to Markdown.",
+  "description": "Convert any HTML element to clean Markdown format with a single click. Supports tables, code blocks, lists, and more.",
   "permissions": [
     "activeTab",
     "scripting",

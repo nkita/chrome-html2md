@@ -1,2 +1,28 @@
+# Development environment
 .vscode
 .kiro
+
+# Node.js dependencies (not needed for Chrome extension)
+node_modules/
+package.json
+package-lock.json
+
+# Test files (not needed for production extension)
+test/
+vitest.config.js
+
+# Development and build files
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Development scripts
+test-restricted-pages.js
+
+# Build output
+dist/
+chrome-extension.zip
+
+# Documentation and spec files (keep for reference but not needed in store)
+.kiro/
