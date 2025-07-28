@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="HTML to Markdown Converter Extension Popup">
+  <title>HTML to Markdown Converter</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container" role="main">
+    <div class="popup-header">
+      <h1 class="popup-title">HTML to Markdown</h1>
+    </div>
+    <div class="popup-options" role="menu" aria-label="Extension options">
+      <button 
+        id="screen-selection" 
+        class="option-button" 
+        type="button"
+        role="menuitem"
+        aria-label="Start screen selection to convert HTML elements to Markdown"
+        tabindex="0"
+      >
+        <span class="icon" aria-hidden="true">🎯</span>
+        <span class="text">Screen Selection</span>
+      </button>
+      <button 
+        id="settings" 
+        class="option-button" 
+        type="button"
+        role="menuitem"
+        aria-label="Open extension settings and configuration options"
+        tabindex="0"
+      >
+        <span class="icon" aria-hidden="true">⚙️</span>
+        <span class="text">Settings</span>
+      </button>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

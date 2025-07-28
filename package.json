@@ -1,0 +1,16 @@
+{
+  "name": "html-to-markdown-converter-tests",
+  "version": "1.0.0",
+  "description": "Tests for HTML to Markdown Converter Extension",
+  "scripts": {
+    "test": "vitest --run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui"
+  },
+  "devDependencies": {
+    "vitest": "^1.0.0",
+    "jsdom": "^23.0.0",
+    "@vitest/ui": "^1.0.0"
+  },
+  "type": "module"
+}

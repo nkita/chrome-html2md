@@ -12,7 +12,7 @@
     "service_worker": "background.js"
   },
   "action": {
-    "default_title": "Convert HTML to Markdown"
+    "default_popup": "popup.html"
   },
   "icons": {
     "16": "images/icon16.png",
