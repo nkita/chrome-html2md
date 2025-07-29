@@ -669,11 +669,19 @@ if (window.isExtensionActive) {
       const html = elementToConvert.outerHTML;
       let markdown = turndownService.turndown(html);
 
-      if (event.shiftKey) {
-        const metadata = extractPageMetadata();
-        markdown = metadata + markdown;
-      }
+      // Check settings for metadata inclusion
+      chrome.storage.sync.get({ includeMetadata: true }, (result) => {
+        if (result.includeMetadata || event.shiftKey) {
+          const metadata = extractPageMetadata();
+          markdown = metadata + markdown;
+        }
 
+        // Copy to clipboard
+        copyToClipboard(markdown);
+      });
+    }
+
+    function copyToClipboard(markdown) {
       // Try modern clipboard API first, fallback to legacy method
       if (isClipboardAvailable()) {
         navigator.clipboard.writeText(markdown).then(() => {

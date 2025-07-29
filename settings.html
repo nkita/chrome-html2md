@@ -10,17 +10,185 @@
     /* Additional styles specific to settings page */
     .settings-container {
       width: 100%;
-      padding: 16px;
+      max-width: 480px;
+      padding: 20px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 24px;
     }
 
     .settings-content {
       display: flex;
       flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Settings sections */
+    .settings-section {
+      background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin: 0 0 20px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Setting items */
+    .setting-item {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
       gap: 16px;
-      text-align: center;
+      padding: 16px 0;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    }
+
+    .setting-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .setting-header {
+      flex: 1;
+    }
+
+    .setting-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 500;
+      color: #1a1a1a;
+      cursor: pointer;
+      margin-bottom: 4px;
+    }
+
+    .setting-icon {
+      font-size: 18px;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .setting-description {
+      font-size: 13px;
+      color: #5f6368;
+      line-height: 1.4;
+    }
+
+    .setting-control {
+      flex-shrink: 0;
+    }
+
+    /* Modern toggle switch */
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 48px;
+      height: 28px;
+      cursor: pointer;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, #e8eaed 0%, #dadce0 100%);
+      border-radius: 28px;
+      transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 4px;
+      bottom: 4px;
+      background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+      border-radius: 50%;
+      transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+      background: linear-gradient(135deg, #4285f4 0%, #1a73e8 100%);
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+
+    .toggle-switch input:checked + .toggle-slider:before {
+      transform: translateX(20px);
+      background: #ffffff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .toggle-switch input:focus + .toggle-slider {
+      box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.2), inset 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Metadata preview */
+    .metadata-preview {
+      margin-top: 16px;
+      background: linear-gradient(135deg, #f8f9fa 0%, #f1f3f4 100%);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      border-radius: 12px;
+      padding: 16px;
+      transition: all 0.2s ease;
+    }
+
+    .metadata-preview.hidden {
+      opacity: 0.5;
+      transform: scale(0.98);
+    }
+
+    .preview-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin: 0 0 12px 0;
+    }
+
+    .preview-content {
+      background: #ffffff;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .preview-content pre {
+      margin: 0;
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #1a1a1a;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .preview-content code {
+      background: none;
+      padding: 0;
+      border-radius: 0;
     }
 
     .placeholder-message {
@@ -41,49 +209,54 @@
 
     .navigation-buttons {
       display: flex;
-      gap: 8px;
+      gap: 12px;
       justify-content: center;
+      margin-top: 8px;
     }
 
     .nav-button {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 8px 16px;
-      border: 1px solid #dadce0;
-      border-radius: 6px;
-      background-color: #ffffff;
-      color: #202124;
+      padding: 10px 20px;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 12px;
+      background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+      color: #1a1a1a;
       font-family: inherit;
-      font-size: 13px;
-      font-weight: 400;
+      font-size: 14px;
+      font-weight: 500;
       text-decoration: none;
       cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+      transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
     }
 
     .nav-button:hover {
-      background-color: #f8f9fa;
-      border-color: #4285f4;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+      border-color: rgba(66, 133, 244, 0.3);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(66, 133, 244, 0.1);
+      transform: translateY(-1px);
     }
 
     .nav-button:focus {
-      outline: 2px solid #4285f4;
-      outline-offset: 2px;
-      background-color: #f8f9fa;
+      outline: none;
+      background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
       border-color: #4285f4;
+      box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.2), 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
     .nav-button:active {
-      background-color: #e8f0fe;
+      background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%);
       border-color: #4285f4;
+      transform: translateY(0) scale(0.98);
+      box-shadow: 0 2px 8px rgba(66, 133, 244, 0.2), inset 0 1px 2px rgba(66, 133, 244, 0.1);
     }
 
     .nav-button .icon {
-      font-size: 14px;
-      width: 16px;
-      height: 16px;
+      font-size: 16px;
+      width: 18px;
+      height: 18px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -92,31 +265,95 @@
 
     /* Dark mode support for settings-specific elements */
     @media (prefers-color-scheme: dark) {
-      .placeholder-message {
-        background-color: #303134;
-        border-color: #5f6368;
-        color: #9aa0a6;
+      .settings-section {
+        background: linear-gradient(135deg, #2d2d2d 0%, #262626 100%);
+        border-color: rgba(255, 255, 255, 0.1);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.4);
       }
 
-      .nav-button {
-        background-color: #303134;
-        border-color: #5f6368;
+      .section-title {
+        color: #ffffff;
+      }
+
+      .setting-item {
+        border-bottom-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .setting-label {
         color: #e8eaed;
       }
 
+      .setting-description {
+        color: #9aa0a6;
+      }
+
+      .toggle-slider {
+        background: linear-gradient(135deg, #5f6368 0%, #4a4a4a 100%);
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+      }
+
+      .toggle-slider:before {
+        background: linear-gradient(135deg, #e8eaed 0%, #dadce0 100%);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+      }
+
+      .toggle-switch input:checked + .toggle-slider {
+        background: linear-gradient(135deg, #8ab4f8 0%, #4285f4 100%);
+      }
+
+      .toggle-switch input:checked + .toggle-slider:before {
+        background: #ffffff;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+      }
+
+      .toggle-switch input:focus + .toggle-slider {
+        box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.3), inset 0 1px 2px rgba(0, 0, 0, 0.3);
+      }
+
+      .metadata-preview {
+        background: linear-gradient(135deg, #1f1f1f 0%, #1a1a1a 100%);
+        border-color: rgba(255, 255, 255, 0.08);
+      }
+
+      .preview-title {
+        color: #e8eaed;
+      }
+
+      .preview-content {
+        background: #2d2d2d;
+        border-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .preview-content pre {
+        color: #e8eaed;
+      }
+
+      .nav-button {
+        background: linear-gradient(135deg, #2d2d2d 0%, #262626 100%);
+        border-color: rgba(255, 255, 255, 0.1);
+        color: #e8eaed;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.4);
+      }
+
       .nav-button:hover {
-        background-color: #3c4043;
-        border-color: #8ab4f8;
+        background: linear-gradient(135deg, #3a3a3a 0%, #333333 100%);
+        border-color: rgba(138, 180, 248, 0.4);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(138, 180, 248, 0.1);
+        transform: translateY(-1px);
       }
 
       .nav-button:focus {
-        outline-color: #8ab4f8;
-        background-color: #3c4043;
+        outline: none;
+        background: linear-gradient(135deg, #3a3a3a 0%, #333333 100%);
         border-color: #8ab4f8;
+        box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.3), 0 4px 12px rgba(0, 0, 0, 0.4);
       }
 
       .nav-button:active {
-        background-color: #1a73e8;
+        background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+        border-color: #8ab4f8;
+        transform: translateY(0) scale(0.98);
+        box-shadow: 0 2px 8px rgba(138, 180, 248, 0.2), inset 0 1px 2px rgba(138, 180, 248, 0.1);
       }
     }
 
@@ -158,16 +395,40 @@
     </div>
     
     <div class="settings-content">
-      <div class="placeholder-message" role="status" aria-live="polite">
-        <div class="placeholder-icon" aria-hidden="true">⚙️</div>
-        <h2 style="font-size: 16px; font-weight: 500; margin-bottom: 8px; color: #202124;">Settings Coming Soon</h2>
-        <p>Settings functionality is not yet implemented. This feature will be available in a future update.</p>
-        <p style="margin-top: 12px; font-size: 13px;">Future settings may include:</p>
-        <ul style="list-style: none; margin-top: 8px; font-size: 13px;">
-          <li>• Output format preferences</li>
-          <li>• Keyboard shortcuts customization</li>
-          <li>• Element selection options</li>
-        </ul>
+      <!-- Conversion Settings Section -->
+      <div class="settings-section">
+        <h2 class="section-title">Conversion Settings</h2>
+        
+        <div class="setting-item">
+          <div class="setting-header">
+            <label for="include-metadata" class="setting-label">
+              <span class="setting-icon">📄</span>
+              Include Metadata
+            </label>
+            <div class="setting-description">
+              Include page metadata (title, URL, timestamp) in the converted Markdown
+            </div>
+          </div>
+          <div class="setting-control">
+            <label class="toggle-switch">
+              <input type="checkbox" id="include-metadata" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="metadata-preview" id="metadata-preview">
+          <h3 class="preview-title">Metadata Preview</h3>
+          <div class="preview-content">
+            <pre><code># Page Title
+**URL:** https://example.com
+**Converted:** 2024-01-20 10:30:00
+
+---
+
+[Your converted content here]</code></pre>
+          </div>
+        </div>
       </div>
       
       <div class="navigation-buttons">

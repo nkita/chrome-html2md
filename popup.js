@@ -85,7 +85,7 @@ class PopupManager {
   }
 
   /**
-   * Check if URL is restricted for content script injection
+   * Check if URL is for content script injection
    */
   isRestrictedUrl(url) {
     const restrictedPrefixes = [
@@ -96,7 +96,7 @@ class PopupManager {
       'https://chromewebstore.google.com',
       'edge://',
       'about:',
-      'file://',
+      // 'file://',
       'data:',
       'javascript:'
     ];
