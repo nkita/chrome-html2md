@@ -3,7 +3,7 @@ chrome.runtime.onMessage.addListener((message) => {
   try {
     switch (message.action) {
       case "startScreenSelection":
-        handleScreenSelection(message.tabId);
+        handleScreenSelection(message.tabId, message.conversionMode);
         break;
       case "openSettings":
         handleSettings();
@@ -17,7 +17,7 @@ chrome.runtime.onMessage.addListener((message) => {
 });
 
 // Handle screen selection functionality (current script injection logic)
-function handleScreenSelection(tabId) {
+function handleScreenSelection(tabId, conversionMode = 'selection') {
   try {
     // Get tab information to check if it's a restricted page
     chrome.tabs.get(tabId, (tab) => {
@@ -32,13 +32,19 @@ function handleScreenSelection(tabId) {
         return;
       }
       
-      // Execute the script injection (current functionality)
+      // Execute the script injection with conversion mode
       chrome.scripting.executeScript({
         target: { tabId: tabId },
         files: ["turndown.js", "content.js"]
       }, () => {
         if (chrome.runtime.lastError) {
           console.error("Error injecting scripts:", chrome.runtime.lastError);
+        } else {
+          // Send conversion mode to content script
+          chrome.tabs.sendMessage(tabId, {
+            action: 'setConversionMode',
+            conversionMode: conversionMode
+          });
         }
       });
     });

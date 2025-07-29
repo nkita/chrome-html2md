@@ -2,6 +2,9 @@ if (window.isExtensionActive) {
   // Avoid running the script twice
 } else {
   window.isExtensionActive = true;
+  
+  // Global conversion mode setting
+  let conversionMode = 'selection'; // default
 
   var turndownService = new TurndownService({
     codeBlockStyle: 'fenced',
@@ -408,40 +411,11 @@ if (window.isExtensionActive) {
     opacity: '0'
   });
 
-  const infoBanner = document.createElement('div');
-  infoBanner.className = 'html-to-markdown-extension-ui';
-  infoBanner.innerHTML = '🎯 Click to copy • ⇧+Click for context • Esc to exit';
-  Object.assign(infoBanner.style, {
-    position: 'fixed',
-    top: '16px',
-    left: '50%',
-    transform: 'translateX(-50%) translateY(-20px)',
-    background: 'rgba(255, 255, 255, 0.95)',
-    backdropFilter: 'blur(20px)',
-    border: '1px solid rgba(0, 0, 0, 0.1)',
-    borderRadius: '12px',
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
-    color: '#1a1a1a',
-    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    fontSize: '14px',
-    fontWeight: '500',
-    padding: '8px 16px',
-    textAlign: 'center',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    zIndex: '10000',
-    opacity: '0',
-    pointerEvents: 'none'
-  });
+  // UI elements will be created in selection mode
+  let infoBanner = null;
 
   document.body.appendChild(highlightOverlay);
   document.body.appendChild(infoLabel);
-  document.body.appendChild(infoBanner);
-
-  // Animate banner entrance
-  setTimeout(() => {
-    infoBanner.style.opacity = '1';
-    infoBanner.style.transform = 'translateX(-50%) translateY(0)';
-  }, 100);
 
   // Check if clipboard API is available
   function isClipboardAvailable() {
@@ -450,8 +424,27 @@ if (window.isExtensionActive) {
       window.isSecureContext;
   }
 
+  // --- Global Clipboard Functions ---
+  function copyToClipboard(markdown, isSelectionMode = false) {
+    // Try modern clipboard API first, fallback to legacy method
+    if (isClipboardAvailable()) {
+      navigator.clipboard.writeText(markdown).then(() => {
+        if (isSelectionMode) {
+          showNotification('Copied to clipboard!');
+          cleanup();
+        }
+        // For full page mode, notification is handled separately
+      }).catch(err => {
+        console.error('Failed to copy with clipboard API: ', err);
+        fallbackCopyToClipboard(markdown, isSelectionMode);
+      });
+    } else {
+      fallbackCopyToClipboard(markdown, isSelectionMode);
+    }
+  }
+
   // Fallback clipboard function for older browsers or insecure contexts
-  function fallbackCopyToClipboard(text) {
+  function fallbackCopyToClipboard(text, isSelectionMode = false) {
     try {
       // Create a temporary textarea element
       const textArea = document.createElement('textarea');
@@ -473,7 +466,11 @@ if (window.isExtensionActive) {
       document.body.removeChild(textArea);
 
       if (successful) {
-        showNotification('Copied to clipboard!');
+        if (isSelectionMode) {
+          showNotification('Copied to clipboard!');
+          cleanup();
+        }
+        // For full page mode, notification is handled separately
       } else {
         showNotification('Copy failed - please copy manually');
         console.log('Markdown content:', text);
@@ -483,7 +480,10 @@ if (window.isExtensionActive) {
       showNotification('Copy failed - check console for content');
       console.log('Markdown content:', text);
     }
-    cleanup();
+    
+    if (isSelectionMode) {
+      cleanup();
+    }
   }
 
   function showNotification(message) {
@@ -706,24 +706,9 @@ if (window.isExtensionActive) {
           markdown = metadata + markdown;
         }
 
-        // Copy to clipboard
-        copyToClipboard(markdown);
+        // Copy to clipboard (selection mode)
+        copyToClipboard(markdown, true);
       });
-    }
-
-    function copyToClipboard(markdown) {
-      // Try modern clipboard API first, fallback to legacy method
-      if (isClipboardAvailable()) {
-        navigator.clipboard.writeText(markdown).then(() => {
-          showNotification('Copied to clipboard!');
-          cleanup();
-        }).catch(err => {
-          console.error('Failed to copy with clipboard API: ', err);
-          fallbackCopyToClipboard(markdown);
-        });
-      } else {
-        fallbackCopyToClipboard(markdown);
-      }
     }
   }
 
@@ -739,30 +724,147 @@ if (window.isExtensionActive) {
     document.removeEventListener('click', handleClick, true);
     document.removeEventListener('keydown', handleKeyDown);
 
+    // Get UI elements (both old and new references)
+    const banner = window.extensionInfoBanner || infoBanner;
+    const overlay = highlightOverlay;
+    const label = infoLabel;
+
     // Animate elements out before removing
-    if (infoBanner.parentNode) {
-      infoBanner.style.opacity = '0';
-      infoBanner.style.transform = 'translateX(-50%) translateY(-20px)';
+    if (banner && banner.parentNode) {
+      banner.style.opacity = '0';
+      banner.style.transform = 'translateX(-50%) translateY(-20px)';
     }
-    if (highlightOverlay.parentNode) {
-      highlightOverlay.style.opacity = '0';
+    if (overlay && overlay.parentNode) {
+      overlay.style.opacity = '0';
     }
-    if (infoLabel.parentNode) {
-      infoLabel.style.opacity = '0';
+    if (label && label.parentNode) {
+      label.style.opacity = '0';
     }
 
     // Remove elements after animation
     setTimeout(() => {
-      if (highlightOverlay.parentNode) document.body.removeChild(highlightOverlay);
-      if (infoLabel.parentNode) document.body.removeChild(infoLabel);
-      if (infoBanner.parentNode) document.body.removeChild(infoBanner);
+      if (overlay && overlay.parentNode) document.body.removeChild(overlay);
+      if (label && label.parentNode) document.body.removeChild(label);
+      if (banner && banner.parentNode) document.body.removeChild(banner);
+      
+      // Clean up references
+      window.extensionInfoBanner = null;
     }, 300);
 
     window.isExtensionActive = false;
   }
 
-  // --- Initialization ---
-  document.addEventListener('mouseover', handleMouseOver);
-  document.addEventListener('click', handleClick, { capture: true, once: true });
-  document.addEventListener('keydown', handleKeyDown);
+  // --- Message Listener ---
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    console.log('Message received:', message);
+    if (message.action === 'setConversionMode') {
+      conversionMode = message.conversionMode;
+      console.log('Conversion mode set to:', conversionMode);
+      
+      // If full page mode, convert immediately and close
+      if (conversionMode === 'fullpage') {
+        console.log('Starting full page conversion');
+        convertFullPage();
+      } else {
+        console.log('Starting selection mode');
+        // Initialize selection mode
+        initializeSelectionMode();
+      }
+    }
+  });
+
+  // --- Full Page Conversion ---
+  function convertFullPage() {
+    console.log('convertFullPage called');
+    try {
+      // Get the main content or entire body
+      const contentElement = document.querySelector('main') || 
+                           document.querySelector('article') || 
+                           document.querySelector('.content') || 
+                           document.querySelector('#content') || 
+                           document.body;
+      
+      console.log('Content element found:', contentElement.tagName);
+      const html = contentElement.outerHTML;
+      let markdown = turndownService.turndown(html);
+      console.log('Markdown generated, length:', markdown.length);
+
+      // Check settings for metadata inclusion
+      chrome.storage.sync.get({ includeMetadata: true, language: 'en' }, (result) => {
+        if (result.includeMetadata) {
+          const metadata = extractPageMetadata(result.language);
+          markdown = metadata + markdown;
+        }
+
+        // Copy to clipboard (full page mode)
+        copyToClipboard(markdown, false);
+        
+        // Show success notification with language support
+        const successMessage = result.language === 'ja' ? 
+          'ページ全体をクリップボードに変換しました！' : 
+          'Full page converted to clipboard!';
+        showNotification(successMessage);
+        
+        // Clean up - no selection interface needed
+        window.isExtensionActive = false;
+      });
+      
+    } catch (error) {
+      console.error('Error in full page conversion:', error);
+      const errorMessage = 'Conversion failed - please try again';
+      showNotification(errorMessage);
+    }
+  }
+
+  // --- Selection Mode Initialization ---
+  function initializeSelectionMode() {
+    // Show selection interface
+    showSelectionInterface();
+    
+    // Initialize selection event listeners
+    document.addEventListener('mouseover', handleMouseOver);
+    document.addEventListener('click', handleClick, { capture: true, once: true });
+    document.addEventListener('keydown', handleKeyDown);
+  }
+
+  // --- Show Selection Interface ---
+  function showSelectionInterface() {
+    // Create and show the info banner for selection mode
+    infoBanner = document.createElement('div');
+    infoBanner.className = 'html-to-markdown-extension-ui';
+    infoBanner.innerHTML = '🎯 Click to copy • Esc to exit';
+    
+    Object.assign(infoBanner.style, {
+      position: 'fixed',
+      top: '16px',
+      left: '50%',
+      transform: 'translateX(-50%) translateY(-20px)',
+      background: 'rgba(255, 255, 255, 0.95)',
+      backdropFilter: 'blur(20px)',
+      border: '1px solid rgba(0, 0, 0, 0.1)',
+      borderRadius: '12px',
+      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+      color: '#1a1a1a',
+      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontSize: '14px',
+      fontWeight: '500',
+      padding: '8px 16px',
+      textAlign: 'center',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      zIndex: '10000',
+      opacity: '0',
+      pointerEvents: 'none'
+    });
+
+    document.body.appendChild(infoBanner);
+
+    // Animate banner entrance
+    setTimeout(() => {
+      infoBanner.style.opacity = '1';
+      infoBanner.style.transform = 'translateX(-50%) translateY(0)';
+    }, 100);
+
+    // Store reference for cleanup
+    window.extensionInfoBanner = infoBanner;
+  }
 }

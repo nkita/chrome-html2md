@@ -13,6 +13,20 @@
       min-width: 600px !important;
       max-width: 800px !important;
       min-height: 500px !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: flex-start !important;
+      align-items: stretch !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: auto !important;
+      position: relative !important;
+      scroll-behavior: auto !important;
+    }
+
+    /* Reset any popup-specific positioning */
+    .popup-container {
+      display: none !important;
     }
 
     /* Additional styles specific to settings page */
@@ -20,10 +34,14 @@
       width: 100%;
       max-width: 800px;
       min-width: 600px;
-      padding: 32px;
+      padding: 24px;
       display: flex;
       flex-direction: column;
-      gap: 32px;
+      gap: 20px;
+      margin: 0 auto;
+      align-self: flex-start;
+      position: relative;
+      top: 0;
     }
 
     .settings-content {
@@ -36,16 +54,16 @@
     .settings-section {
       background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
       border: 1px solid rgba(0, 0, 0, 0.08);
-      border-radius: 16px;
-      padding: 24px;
+      border-radius: 12px;
+      padding: 20px;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
     }
 
     .section-title {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 600;
       color: #1a1a1a;
-      margin: 0 0 24px 0;
+      margin: 0 0 16px 0;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -56,8 +74,8 @@
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
-      gap: 24px;
-      padding: 20px 0;
+      gap: 20px;
+      padding: 12px 0;
       border-bottom: 1px solid rgba(0, 0, 0, 0.06);
     }
 
@@ -91,11 +109,11 @@
     }
 
     .setting-description {
-      font-size: 14px;
+      font-size: 13px;
       color: #5f6368;
-      line-height: 1.5;
-      max-width: 400px;
-      margin-top: 4px;
+      line-height: 1.4;
+      max-width: 350px;
+      margin-top: 2px;
     }
 
     .setting-control {
@@ -159,11 +177,11 @@
 
     /* Metadata preview */
     .metadata-preview {
-      margin-top: 20px;
+      margin-top: 12px;
       background: linear-gradient(135deg, #f8f9fa 0%, #f1f3f4 100%);
       border: 1px solid rgba(0, 0, 0, 0.06);
-      border-radius: 12px;
-      padding: 20px;
+      border-radius: 8px;
+      padding: 16px;
       transition: all 0.2s ease;
     }
 
@@ -173,24 +191,24 @@
     }
 
     .preview-title {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       color: #1a1a1a;
-      margin: 0 0 12px 0;
+      margin: 0 0 8px 0;
     }
 
     .preview-content {
       background: #ffffff;
       border: 1px solid rgba(0, 0, 0, 0.08);
-      border-radius: 8px;
-      padding: 16px;
+      border-radius: 6px;
+      padding: 12px;
     }
 
     .preview-content pre {
       margin: 0;
       font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-      font-size: 12px;
-      line-height: 1.5;
+      font-size: 11px;
+      line-height: 1.4;
       color: #1a1a1a;
       white-space: pre-wrap;
       word-wrap: break-word;
@@ -230,6 +248,34 @@
       box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.2), 0 2px 6px rgba(0, 0, 0, 0.1);
     }
 
+    /* Mode dropdown */
+    .mode-dropdown {
+      padding: 8px 12px;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 8px;
+      background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+      color: #1a1a1a;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      min-width: 140px;
+    }
+
+    .mode-dropdown:hover {
+      background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+      border-color: rgba(66, 133, 244, 0.3);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .mode-dropdown:focus {
+      outline: none;
+      border-color: #4285f4;
+      box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.2), 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
     .placeholder-message {
       padding: 24px 16px;
       background-color: #f8f9fa;
@@ -246,24 +292,31 @@
       opacity: 0.6;
     }
 
+    /* Header layout */
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+
     .navigation-buttons {
       display: flex;
-      gap: 12px;
-      justify-content: center;
-      margin-top: 8px;
+      gap: 8px;
+      flex-shrink: 0;
     }
 
     .nav-button {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 10px 20px;
+      gap: 6px;
+      padding: 8px 16px;
       border: 1px solid rgba(0, 0, 0, 0.08);
-      border-radius: 12px;
+      border-radius: 8px;
       background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
       color: #1a1a1a;
       font-family: inherit;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 500;
       text-decoration: none;
       cursor: pointer;
@@ -293,9 +346,9 @@
     }
 
     .nav-button .icon {
-      font-size: 16px;
-      width: 18px;
-      height: 18px;
+      font-size: 14px;
+      width: 16px;
+      height: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -384,30 +437,48 @@
         border-color: #8ab4f8;
         box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.3), 0 2px 6px rgba(0, 0, 0, 0.4);
       }
+
+      .mode-dropdown {
+        background: linear-gradient(135deg, #2d2d2d 0%, #262626 100%);
+        border-color: rgba(255, 255, 255, 0.1);
+        color: #e8eaed;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      }
+
+      .mode-dropdown:hover {
+        background: linear-gradient(135deg, #3a3a3a 0%, #333333 100%);
+        border-color: rgba(138, 180, 248, 0.4);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+      }
+
+      .mode-dropdown:focus {
+        border-color: #8ab4f8;
+        box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.3), 0 2px 6px rgba(0, 0, 0, 0.4);
+      }
     }
 
     /* Responsive adjustments */
     @media (max-width: 768px) {
       .settings-container {
         max-width: 100%;
-        padding: 20px;
-        gap: 20px;
+        padding: 16px;
+        gap: 16px;
       }
 
       .settings-section {
-        padding: 20px;
+        padding: 16px;
       }
 
       .setting-item {
         flex-direction: column;
         align-items: flex-start;
-        gap: 12px;
-        padding: 16px 0;
+        gap: 8px;
+        padding: 12px 0;
       }
 
       .setting-description {
         max-width: none;
-        margin-top: 8px;
+        margin-top: 4px;
       }
 
       .setting-control {
@@ -417,17 +488,17 @@
 
     @media (max-width: 480px) {
       .settings-container {
-        padding: 16px;
-        gap: 16px;
+        padding: 12px;
+        gap: 12px;
       }
 
       .settings-section {
-        padding: 16px;
+        padding: 12px;
       }
 
       .section-title {
-        font-size: 16px;
-        margin-bottom: 16px;
+        font-size: 15px;
+        margin-bottom: 12px;
       }
 
       .setting-label {
@@ -435,7 +506,7 @@
       }
 
       .setting-description {
-        font-size: 13px;
+        font-size: 12px;
       }
 
       .nav-button {
@@ -448,7 +519,7 @@
       .nav-button:hover {
         background: linear-gradient(135deg, #3a3a3a 0%, #333333 100%);
         border-color: rgba(138, 180, 248, 0.4);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(138, 180, 248, 0.1);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(138, 180, 248, 0.1);
         transform: translateY(-1px);
       }
 
@@ -456,14 +527,14 @@
         outline: none;
         background: linear-gradient(135deg, #3a3a3a 0%, #333333 100%);
         border-color: #8ab4f8;
-        box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.3), 0 4px 12px rgba(0, 0, 0, 0.4);
+        box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.3), 0 2px 6px rgba(0, 0, 0, 0.4);
       }
 
       .nav-button:active {
         background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
         border-color: #8ab4f8;
         transform: translateY(0) scale(0.98);
-        box-shadow: 0 2px 8px rgba(138, 180, 248, 0.2), inset 0 1px 2px rgba(138, 180, 248, 0.1);
+        box-shadow: 0 1px 4px rgba(138, 180, 248, 0.2), inset 0 1px 2px rgba(138, 180, 248, 0.1);
       }
     }
 
@@ -501,10 +572,57 @@
 <body>
   <div class="settings-container" role="main">
     <div class="popup-header">
-      <h1 class="popup-title">Settings</h1>
+      <div class="header-content">
+        <h1 class="popup-title">Settings</h1>
+        <div class="navigation-buttons">
+          <button 
+            id="back-to-popup" 
+            class="nav-button" 
+            type="button"
+            aria-label="Go back to main popup menu"
+            tabindex="0"
+          >
+            <span class="icon" aria-hidden="true">←</span>
+            <span>Back</span>
+          </button>
+          <button 
+            id="close-settings" 
+            class="nav-button" 
+            type="button"
+            aria-label="Close settings and extension popup"
+            tabindex="0"
+          >
+            <span class="icon" aria-hidden="true">✕</span>
+            <span>Close</span>
+          </button>
+        </div>
+      </div>
     </div>
     
     <div class="settings-content">
+      <!-- Conversion Mode Settings Section -->
+      <div class="settings-section">
+        <h2 class="section-title" data-i18n="conversion-mode-settings">Conversion Mode Settings</h2>
+        
+        <div class="setting-item">
+          <div class="setting-header">
+            <label for="conversion-mode" class="setting-label">
+              <span class="setting-icon">🎯</span>
+              <span data-i18n="conversion-mode">Conversion Mode</span>
+            </label>
+            <div class="setting-description" data-i18n="conversion-mode-description">
+              Choose between element selection mode or full page conversion
+            </div>
+          </div>
+          <div class="setting-control">
+            <select id="conversion-mode" class="mode-dropdown">
+              <option value="selection" data-i18n-option="selection-mode">Element Selection</option>
+              <option value="fullpage" data-i18n-option="fullpage-mode">Full Page</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       <!-- Language Settings Section -->
       <div class="settings-section">
         <h2 class="section-title" data-i18n="language-settings">Language Settings</h2>
@@ -562,29 +680,6 @@
 [Your converted content here]</code></pre>
           </div>
         </div>
-      </div>
-      
-      <div class="navigation-buttons">
-        <button 
-          id="back-to-popup" 
-          class="nav-button" 
-          type="button"
-          aria-label="Go back to main popup menu"
-          tabindex="0"
-        >
-          <span class="icon" aria-hidden="true">←</span>
-          <span>Back</span>
-        </button>
-        <button 
-          id="close-settings" 
-          class="nav-button" 
-          type="button"
-          aria-label="Close settings and extension popup"
-          tabindex="0"
-        >
-          <span class="icon" aria-hidden="true">✕</span>
-          <span>Close</span>
-        </button>
       </div>
     </div>
   </div>

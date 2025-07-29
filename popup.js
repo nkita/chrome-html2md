@@ -12,6 +12,8 @@ class PopupManager {
       en: {
         'app-title': 'HTML to Markdown',
         'screen-selection': 'Screen Selection',
+        'select-and-convert': 'Select & Convert',
+        'convert-page': 'Convert Page',
         'settings': 'Settings',
         'restricted-message-chrome': 'Screen selection is not available on browser internal pages',
         'restricted-message-extension': 'Screen selection is not available on extension pages',
@@ -23,6 +25,8 @@ class PopupManager {
       ja: {
         'app-title': 'HTML to Markdown',
         'screen-selection': '画面選択',
+        'select-and-convert': '選択して変換',
+        'convert-page': 'ページを変換',
         'settings': '設定',
         'restricted-message-chrome': 'ブラウザの内部ページでは画面選択を使用できません',
         'restricted-message-extension': '拡張機能ページでは画面選択を使用できません',
@@ -54,6 +58,9 @@ class PopupManager {
       // Load and apply language settings
       await this.loadLanguageSettings();
 
+      // Update button text based on conversion mode
+      await this.updateButtonText();
+
       // Check permissions and update UI accordingly
       this.checkTabPermissions();
 
@@ -67,6 +74,9 @@ class PopupManager {
 
       // Focus the first available button for keyboard navigation
       this.focusFirstAvailableButton();
+
+      // Listen for storage changes to update button text
+      this.setupStorageListener();
 
     } catch (error) {
       console.error('Error initializing popup:', error);
@@ -104,6 +114,42 @@ class PopupManager {
 
     // Update page title
     document.title = `${translations['app-title']} - Extension`;
+  }
+
+  /**
+   * Update button text based on conversion mode
+   */
+  async updateButtonText() {
+    try {
+      const settings = await chrome.storage.sync.get({ conversionMode: 'selection', language: 'en' });
+      const translations = this.translations[settings.language] || this.translations.en;
+
+      if (this.screenSelectionButton) {
+        const buttonText = this.screenSelectionButton.querySelector('.text');
+        if (buttonText) {
+          if (settings.conversionMode === 'fullpage') {
+            buttonText.textContent = translations['convert-page'];
+          } else {
+            buttonText.textContent = translations['select-and-convert'];
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error updating button text:', error);
+    }
+  }
+
+  /**
+   * Setup storage change listener
+   */
+  setupStorageListener() {
+    chrome.storage.onChanged.addListener((changes, namespace) => {
+      if (namespace === 'sync') {
+        if (changes.conversionMode || changes.language) {
+          this.updateButtonText();
+        }
+      }
+    });
   }
 
   /**
@@ -378,10 +424,14 @@ class PopupManager {
     }
 
     try {
-      // Send message to background script to start screen selection
+      // Get conversion mode setting
+      const settings = await chrome.storage.sync.get({ conversionMode: 'selection' });
+
+      // Send message to background script with conversion mode
       const message = {
         action: 'startScreenSelection',
-        tabId: this.currentTab.id
+        tabId: this.currentTab.id,
+        conversionMode: settings.conversionMode
       };
 
       await chrome.runtime.sendMessage(message);

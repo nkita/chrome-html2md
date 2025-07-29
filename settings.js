@@ -11,12 +11,14 @@ class SettingsManager {
     // Default settings
     this.defaultSettings = {
       includeMetadata: true,
-      language: 'en'
+      language: 'en',
+      conversionMode: 'selection'
     };
 
     // Language translations
     this.translations = {
       en: {
+        'conversion-mode-settings': 'Conversion Mode Settings',
         'language-settings': 'Language Settings',
         'interface-language': 'Interface Language',
         'language-description': 'Choose the language for the extension interface and metadata',
@@ -24,11 +26,16 @@ class SettingsManager {
         'include-metadata': 'Include Metadata',
         'metadata-description': 'Include page metadata (title, URL, timestamp) in the converted Markdown',
         'metadata-preview': 'Metadata Preview',
+        'conversion-mode': 'Conversion Mode',
+        'conversion-mode-description': 'Choose between element selection mode or full page conversion',
+        'selection-mode': 'Element Selection',
+        'fullpage-mode': 'Full Page',
         'back': 'Back',
         'close': 'Close',
         'settings': 'Settings'
       },
       ja: {
+        'conversion-mode-settings': '変換モード設定',
         'language-settings': '言語設定',
         'interface-language': 'インターフェース言語',
         'language-description': '拡張機能のインターフェースとメタデータの言語を選択してください',
@@ -36,6 +43,10 @@ class SettingsManager {
         'include-metadata': 'メタデータを含める',
         'metadata-description': '変換されたMarkdownにページのメタデータ（タイトル、URL、タイムスタンプ）を含める',
         'metadata-preview': 'メタデータプレビュー',
+        'conversion-mode': '変換モード',
+        'conversion-mode-description': '要素選択モードまたは全画面変換モードを選択してください',
+        'selection-mode': '要素選択',
+        'fullpage-mode': '全画面',
         'back': '戻る',
         'close': '閉じる',
         'settings': '設定'
@@ -70,8 +81,9 @@ class SettingsManager {
       this.metadataToggle = document.getElementById('include-metadata');
       this.metadataPreview = document.getElementById('metadata-preview');
       this.languageSelect = document.getElementById('language-select');
+      this.conversionModeSelect = document.getElementById('conversion-mode');
 
-      if (!this.backButton || !this.closeButton || !this.metadataToggle || !this.languageSelect) {
+      if (!this.backButton || !this.closeButton || !this.metadataToggle || !this.languageSelect || !this.conversionModeSelect) {
         console.error('Required settings elements not found');
         return;
       }
@@ -90,8 +102,15 @@ class SettingsManager {
       
       this.isInitialized = true;
       
-      // Focus the metadata toggle for better UX
-      this.metadataToggle.focus();
+      // Ensure page starts at top
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      window.scrollTo(0, 0);
+      
+      // Focus first element (conversion mode) for better UX
+      setTimeout(() => {
+        this.conversionModeSelect.focus();
+      }, 100);
       
     } catch (error) {
       console.error('Error initializing settings:', error);
@@ -131,6 +150,13 @@ class SettingsManager {
         this.handleLanguageChange(e.target.value);
       });
     }
+
+    // Conversion mode select
+    if (this.conversionModeSelect) {
+      this.conversionModeSelect.addEventListener('change', (e) => {
+        this.handleConversionModeChange(e.target.value);
+      });
+    }
   }
 
   /**
@@ -149,6 +175,10 @@ class SettingsManager {
         this.languageSelect.value = result.language;
       }
 
+      if (this.conversionModeSelect) {
+        this.conversionModeSelect.value = result.conversionMode;
+      }
+
       // Apply language
       this.applyLanguage(result.language);
       
@@ -162,6 +192,10 @@ class SettingsManager {
       
       if (this.languageSelect) {
         this.languageSelect.value = this.defaultSettings.language;
+      }
+
+      if (this.conversionModeSelect) {
+        this.conversionModeSelect.value = this.defaultSettings.conversionMode;
       }
 
       // Apply default language
@@ -223,6 +257,22 @@ class SettingsManager {
   }
 
   /**
+   * Handle conversion mode change
+   */
+  async handleConversionModeChange(conversionMode) {
+    try {
+      // Save the setting
+      await this.saveSettings({ conversionMode });
+      
+      // Provide visual feedback
+      this.showSettingsSaved();
+      
+    } catch (error) {
+      console.error('Error handling conversion mode change:', error);
+    }
+  }
+
+  /**
    * Apply language to the interface
    */
   applyLanguage(language) {
@@ -231,6 +281,14 @@ class SettingsManager {
     // Update all elements with data-i18n attributes
     document.querySelectorAll('[data-i18n]').forEach(element => {
       const key = element.getAttribute('data-i18n');
+      if (translations[key]) {
+        element.textContent = translations[key];
+      }
+    });
+
+    // Update option elements with data-i18n-option attributes
+    document.querySelectorAll('[data-i18n-option]').forEach(element => {
+      const key = element.getAttribute('data-i18n-option');
       if (translations[key]) {
         element.textContent = translations[key];
       }
@@ -365,8 +423,26 @@ ${template.content}`;
   }
 }
 
+// Force scroll to top on page load
+window.addEventListener('load', () => {
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+  window.scrollTo(0, 0);
+});
+
+// Also reset on beforeunload to prevent scroll restoration
+window.addEventListener('beforeunload', () => {
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+});
+
 // Initialize settings when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+  // Force scroll to top immediately
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+  window.scrollTo(0, 0);
+  
   const settingsManager = new SettingsManager();
   settingsManager.initializeSettings();
 });
