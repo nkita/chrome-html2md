@@ -5,11 +5,57 @@ class SettingsManager {
     this.closeButton = null;
     this.metadataToggle = null;
     this.metadataPreview = null;
+    this.languageSelect = null;
     this.isInitialized = false;
     
     // Default settings
     this.defaultSettings = {
-      includeMetadata: true
+      includeMetadata: true,
+      language: 'en'
+    };
+
+    // Language translations
+    this.translations = {
+      en: {
+        'language-settings': 'Language Settings',
+        'interface-language': 'Interface Language',
+        'language-description': 'Choose the language for the extension interface and metadata',
+        'conversion-settings': 'Conversion Settings',
+        'include-metadata': 'Include Metadata',
+        'metadata-description': 'Include page metadata (title, URL, timestamp) in the converted Markdown',
+        'metadata-preview': 'Metadata Preview',
+        'back': 'Back',
+        'close': 'Close',
+        'settings': 'Settings'
+      },
+      ja: {
+        'language-settings': '言語設定',
+        'interface-language': 'インターフェース言語',
+        'language-description': '拡張機能のインターフェースとメタデータの言語を選択してください',
+        'conversion-settings': '変換設定',
+        'include-metadata': 'メタデータを含める',
+        'metadata-description': '変換されたMarkdownにページのメタデータ（タイトル、URL、タイムスタンプ）を含める',
+        'metadata-preview': 'メタデータプレビュー',
+        'back': '戻る',
+        'close': '閉じる',
+        'settings': '設定'
+      }
+    };
+
+    // Metadata templates
+    this.metadataTemplates = {
+      en: {
+        title: 'Page Title',
+        url: 'URL',
+        converted: 'Converted',
+        content: '[Your converted content here]'
+      },
+      ja: {
+        title: 'ページタイトル',
+        url: 'URL',
+        converted: '変換日時',
+        content: '[変換されたコンテンツがここに表示されます]'
+      }
     };
   }
 
@@ -23,8 +69,9 @@ class SettingsManager {
       this.closeButton = document.getElementById('close-settings');
       this.metadataToggle = document.getElementById('include-metadata');
       this.metadataPreview = document.getElementById('metadata-preview');
+      this.languageSelect = document.getElementById('language-select');
 
-      if (!this.backButton || !this.closeButton || !this.metadataToggle) {
+      if (!this.backButton || !this.closeButton || !this.metadataToggle || !this.languageSelect) {
         console.error('Required settings elements not found');
         return;
       }
@@ -77,6 +124,13 @@ class SettingsManager {
         this.handleMetadataToggle(e.target.checked);
       });
     }
+
+    // Language select
+    if (this.languageSelect) {
+      this.languageSelect.addEventListener('change', (e) => {
+        this.handleLanguageChange(e.target.value);
+      });
+    }
   }
 
   /**
@@ -91,6 +145,13 @@ class SettingsManager {
         this.metadataToggle.checked = result.includeMetadata;
       }
       
+      if (this.languageSelect) {
+        this.languageSelect.value = result.language;
+      }
+
+      // Apply language
+      this.applyLanguage(result.language);
+      
       console.log('Settings loaded:', result);
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -98,6 +159,13 @@ class SettingsManager {
       if (this.metadataToggle) {
         this.metadataToggle.checked = this.defaultSettings.includeMetadata;
       }
+      
+      if (this.languageSelect) {
+        this.languageSelect.value = this.defaultSettings.language;
+      }
+
+      // Apply default language
+      this.applyLanguage(this.defaultSettings.language);
     }
   }
 
@@ -133,15 +201,69 @@ class SettingsManager {
   }
 
   /**
+   * Handle language change
+   */
+  async handleLanguageChange(language) {
+    try {
+      // Save the setting
+      await this.saveSettings({ language });
+      
+      // Apply the new language
+      this.applyLanguage(language);
+      
+      // Update metadata preview with new language
+      this.updateMetadataPreview();
+      
+      // Provide visual feedback
+      this.showSettingsSaved();
+      
+    } catch (error) {
+      console.error('Error handling language change:', error);
+    }
+  }
+
+  /**
+   * Apply language to the interface
+   */
+  applyLanguage(language) {
+    const translations = this.translations[language] || this.translations.en;
+    
+    // Update all elements with data-i18n attributes
+    document.querySelectorAll('[data-i18n]').forEach(element => {
+      const key = element.getAttribute('data-i18n');
+      if (translations[key]) {
+        element.textContent = translations[key];
+      }
+    });
+
+    // Update page title
+    document.title = `${translations.settings} - HTML to Markdown Converter`;
+  }
+
+  /**
    * Update metadata preview based on current setting
    */
   updateMetadataPreview() {
     if (!this.metadataPreview || !this.metadataToggle) return;
 
     const includeMetadata = this.metadataToggle.checked;
+    const currentLanguage = this.languageSelect?.value || 'en';
+    const template = this.metadataTemplates[currentLanguage] || this.metadataTemplates.en;
     
     if (includeMetadata) {
       this.metadataPreview.classList.remove('hidden');
+      
+      // Update preview content with current language
+      const previewContent = document.getElementById('metadata-preview-content');
+      if (previewContent) {
+        previewContent.textContent = `# ${template.title}
+**${template.url}:** https://example.com
+**${template.converted}:** 2024-01-20 10:30:00
+
+---
+
+${template.content}`;
+      }
     } else {
       this.metadataPreview.classList.add('hidden');
     }

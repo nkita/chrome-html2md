@@ -6,6 +6,32 @@ class PopupManager {
     this.screenSelectionButton = null;
     this.settingsButton = null;
     this.isInitialized = false;
+
+    // Language translations
+    this.translations = {
+      en: {
+        'app-title': 'HTML to Markdown',
+        'screen-selection': 'Screen Selection',
+        'settings': 'Settings',
+        'restricted-message-chrome': 'Screen selection is not available on browser internal pages',
+        'restricted-message-extension': 'Screen selection is not available on extension pages',
+        'restricted-message-webstore': 'Screen selection is not available on Chrome Web Store pages',
+        'restricted-message-file': 'Screen selection is not available on local file pages',
+        'restricted-message-about': 'Screen selection is not available on browser about pages',
+        'restricted-message-default': 'Screen selection is not available on this page'
+      },
+      ja: {
+        'app-title': 'HTML to Markdown',
+        'screen-selection': '画面選択',
+        'settings': '設定',
+        'restricted-message-chrome': 'ブラウザの内部ページでは画面選択を使用できません',
+        'restricted-message-extension': '拡張機能ページでは画面選択を使用できません',
+        'restricted-message-webstore': 'Chrome ウェブストアページでは画面選択を使用できません',
+        'restricted-message-file': 'ローカルファイルページでは画面選択を使用できません',
+        'restricted-message-about': 'ブラウザのaboutページでは画面選択を使用できません',
+        'restricted-message-default': 'このページでは画面選択を使用できません'
+      }
+    };
   }
 
   /**
@@ -24,24 +50,80 @@ class PopupManager {
 
       // Get current tab information
       await this.getCurrentTab();
-      
+
+      // Load and apply language settings
+      await this.loadLanguageSettings();
+
       // Check permissions and update UI accordingly
       this.checkTabPermissions();
-      
+
       // Set up event listeners
       this.setupEventListeners();
-      
+
       // Set up keyboard navigation
       this.setupKeyboardNavigation();
-      
+
       this.isInitialized = true;
-      
+
       // Focus the first available button for keyboard navigation
       this.focusFirstAvailableButton();
-      
+
     } catch (error) {
       console.error('Error initializing popup:', error);
       this.handleInitializationError();
+    }
+  }
+
+  /**
+   * Load and apply language settings
+   */
+  async loadLanguageSettings() {
+    try {
+      const result = await chrome.storage.sync.get({ language: 'en' });
+      this.applyLanguage(result.language);
+    } catch (error) {
+      console.error('Error loading language settings:', error);
+      // Use default language
+      this.applyLanguage('en');
+    }
+  }
+
+  /**
+   * Apply language to the interface
+   */
+  applyLanguage(language) {
+    const translations = this.translations[language] || this.translations.en;
+
+    // Update all elements with data-i18n attributes
+    document.querySelectorAll('[data-i18n]').forEach(element => {
+      const key = element.getAttribute('data-i18n');
+      if (translations[key]) {
+        element.textContent = translations[key];
+      }
+    });
+
+    // Update page title
+    document.title = `${translations['app-title']} - Extension`;
+  }
+
+  /**
+   * Get localized restricted message
+   */
+  getLocalizedRestrictedMessage(url, language = 'en') {
+    const translations = this.translations[language] || this.translations.en;
+
+    if (url.startsWith('chrome://') || url.startsWith('edge://')) {
+      return translations['restricted-message-chrome'];
+    } else if (url.startsWith('chrome-extension://') || url.startsWith('moz-extension://')) {
+      return translations['restricted-message-extension'];
+    } else if (url.startsWith('https://chrome.google.com') || url.startsWith('https://chromewebstore.google.com')) {
+      return translations['restricted-message-webstore'];
+    } else if (url.startsWith('file://')) {
+      return translations['restricted-message-file'];
+    } else if (url.startsWith('about:')) {
+      return translations['restricted-message-about'];
+    } else {
+      return translations['restricted-message-default'];
     }
   }
 
@@ -61,7 +143,7 @@ class PopupManager {
   /**
    * Check current tab permissions and disable options for restricted pages
    */
-  checkTabPermissions() {
+  async checkTabPermissions() {
     if (!this.currentTab || !this.currentTab.url) {
       this.disableScreenSelection('Unable to access current tab');
       this.showRestrictedMessage('Unable to access current tab information');
@@ -72,7 +154,9 @@ class PopupManager {
     const isRestrictedPage = this.isRestrictedUrl(url);
 
     if (isRestrictedPage) {
-      const restrictedMessage = this.getRestrictedPageMessage(url);
+      // Get current language for localized message
+      const result = await chrome.storage.sync.get({ language: 'en' });
+      const restrictedMessage = this.getLocalizedRestrictedMessage(url, result.language);
       this.disableScreenSelection(restrictedMessage);
       this.showRestrictedMessage(restrictedMessage);
     } else {
@@ -301,10 +385,10 @@ class PopupManager {
       };
 
       await chrome.runtime.sendMessage(message);
-      
+
       // Close the popup after successful message sending
       this.closePopup();
-      
+
     } catch (error) {
       console.error('Error starting screen selection:', error);
       this.handleScreenSelectionError(error);
@@ -322,7 +406,7 @@ class PopupManager {
     try {
       // Navigate to settings page
       window.location.href = 'settings.html';
-      
+
     } catch (error) {
       console.error('Error opening settings:', error);
       this.handleSettingsError(error);
@@ -362,7 +446,7 @@ class PopupManager {
   handleScreenSelectionError(error) {
     // Could implement user feedback here, for now just log
     console.error('Screen selection failed:', error);
-    
+
     // Optionally show temporary error message
     this.showTemporaryMessage('Failed to start screen selection. Please try again.');
   }
@@ -373,7 +457,7 @@ class PopupManager {
   handleSettingsError(error) {
     // Could implement user feedback here, for now just log
     console.error('Settings failed:', error);
-    
+
     // Optionally show temporary error message
     this.showTemporaryMessage('Failed to open settings. Please try again.');
   }

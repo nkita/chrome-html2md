@@ -7,14 +7,23 @@
   <title>Settings - HTML to Markdown Converter</title>
   <link rel="stylesheet" href="popup.css">
   <style>
+    /* Override popup.css for settings page */
+    html, body {
+      width: auto !important;
+      min-width: 600px !important;
+      max-width: 800px !important;
+      min-height: 500px !important;
+    }
+
     /* Additional styles specific to settings page */
     .settings-container {
       width: 100%;
-      max-width: 480px;
-      padding: 20px;
+      max-width: 800px;
+      min-width: 600px;
+      padding: 32px;
       display: flex;
       flex-direction: column;
-      gap: 24px;
+      gap: 32px;
     }
 
     .settings-content {
@@ -28,7 +37,7 @@
       background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
       border: 1px solid rgba(0, 0, 0, 0.08);
       border-radius: 16px;
-      padding: 20px;
+      padding: 24px;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
     }
 
@@ -36,7 +45,7 @@
       font-size: 18px;
       font-weight: 600;
       color: #1a1a1a;
-      margin: 0 0 20px 0;
+      margin: 0 0 24px 0;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -47,8 +56,8 @@
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
-      gap: 16px;
-      padding: 16px 0;
+      gap: 24px;
+      padding: 20px 0;
       border-bottom: 1px solid rgba(0, 0, 0, 0.06);
     }
 
@@ -82,9 +91,11 @@
     }
 
     .setting-description {
-      font-size: 13px;
+      font-size: 14px;
       color: #5f6368;
-      line-height: 1.4;
+      line-height: 1.5;
+      max-width: 400px;
+      margin-top: 4px;
     }
 
     .setting-control {
@@ -148,11 +159,11 @@
 
     /* Metadata preview */
     .metadata-preview {
-      margin-top: 16px;
+      margin-top: 20px;
       background: linear-gradient(135deg, #f8f9fa 0%, #f1f3f4 100%);
       border: 1px solid rgba(0, 0, 0, 0.06);
       border-radius: 12px;
-      padding: 16px;
+      padding: 20px;
       transition: all 0.2s ease;
     }
 
@@ -172,7 +183,7 @@
       background: #ffffff;
       border: 1px solid rgba(0, 0, 0, 0.08);
       border-radius: 8px;
-      padding: 12px;
+      padding: 16px;
     }
 
     .preview-content pre {
@@ -189,6 +200,34 @@
       background: none;
       padding: 0;
       border-radius: 0;
+    }
+
+    /* Language dropdown */
+    .language-dropdown {
+      padding: 8px 12px;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 8px;
+      background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+      color: #1a1a1a;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      min-width: 120px;
+    }
+
+    .language-dropdown:hover {
+      background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+      border-color: rgba(66, 133, 244, 0.3);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .language-dropdown:focus {
+      outline: none;
+      border-color: #4285f4;
+      box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.2), 0 2px 6px rgba(0, 0, 0, 0.1);
     }
 
     .placeholder-message {
@@ -328,6 +367,77 @@
         color: #e8eaed;
       }
 
+      .language-dropdown {
+        background: linear-gradient(135deg, #2d2d2d 0%, #262626 100%);
+        border-color: rgba(255, 255, 255, 0.1);
+        color: #e8eaed;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      }
+
+      .language-dropdown:hover {
+        background: linear-gradient(135deg, #3a3a3a 0%, #333333 100%);
+        border-color: rgba(138, 180, 248, 0.4);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+      }
+
+      .language-dropdown:focus {
+        border-color: #8ab4f8;
+        box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.3), 0 2px 6px rgba(0, 0, 0, 0.4);
+      }
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .settings-container {
+        max-width: 100%;
+        padding: 20px;
+        gap: 20px;
+      }
+
+      .settings-section {
+        padding: 20px;
+      }
+
+      .setting-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 16px 0;
+      }
+
+      .setting-description {
+        max-width: none;
+        margin-top: 8px;
+      }
+
+      .setting-control {
+        align-self: flex-end;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .settings-container {
+        padding: 16px;
+        gap: 16px;
+      }
+
+      .settings-section {
+        padding: 16px;
+      }
+
+      .section-title {
+        font-size: 16px;
+        margin-bottom: 16px;
+      }
+
+      .setting-label {
+        font-size: 14px;
+      }
+
+      .setting-description {
+        font-size: 13px;
+      }
+
       .nav-button {
         background: linear-gradient(135deg, #2d2d2d 0%, #262626 100%);
         border-color: rgba(255, 255, 255, 0.1);
@@ -395,17 +505,40 @@
     </div>
     
     <div class="settings-content">
+      <!-- Language Settings Section -->
+      <div class="settings-section">
+        <h2 class="section-title" data-i18n="language-settings">Language Settings</h2>
+        
+        <div class="setting-item">
+          <div class="setting-header">
+            <label for="language-select" class="setting-label">
+              <span class="setting-icon">🌐</span>
+              <span data-i18n="interface-language">Interface Language</span>
+            </label>
+            <div class="setting-description" data-i18n="language-description">
+              Choose the language for the extension interface and metadata
+            </div>
+          </div>
+          <div class="setting-control">
+            <select id="language-select" class="language-dropdown">
+              <option value="en">English</option>
+              <option value="ja">日本語</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       <!-- Conversion Settings Section -->
       <div class="settings-section">
-        <h2 class="section-title">Conversion Settings</h2>
+        <h2 class="section-title" data-i18n="conversion-settings">Conversion Settings</h2>
         
         <div class="setting-item">
           <div class="setting-header">
             <label for="include-metadata" class="setting-label">
               <span class="setting-icon">📄</span>
-              Include Metadata
+              <span data-i18n="include-metadata">Include Metadata</span>
             </label>
-            <div class="setting-description">
+            <div class="setting-description" data-i18n="metadata-description">
               Include page metadata (title, URL, timestamp) in the converted Markdown
             </div>
           </div>
@@ -418,9 +551,9 @@
         </div>
 
         <div class="metadata-preview" id="metadata-preview">
-          <h3 class="preview-title">Metadata Preview</h3>
+          <h3 class="preview-title" data-i18n="metadata-preview">Metadata Preview</h3>
           <div class="preview-content">
-            <pre><code># Page Title
+            <pre><code id="metadata-preview-content"># Page Title
 **URL:** https://example.com
 **Converted:** 2024-01-20 10:30:00
 

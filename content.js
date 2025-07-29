@@ -17,8 +17,8 @@ if (window.isExtensionActive) {
     replacement: function (content, node) {
       const code = node.textContent || '';
       // Optionally, try to get the language from a class like 'language-js'
-      const language = node.firstChild?.className?.match(/language-(\S+)/)?.[1] || '';
-      return '\n\n```' + language + '\n' + code.trim() + '\n```\n\n';
+      const codeLang = node.firstChild?.className?.match(/language-(\S+)/)?.[1] || '';
+      return '\n\n```' + codeLang + '\n' + code.trim() + '\n```\n\n';
     }
   });
 
@@ -531,14 +531,14 @@ if (window.isExtensionActive) {
   }
 
   // --- Metadata Extraction ---
-  function extractPageMetadata() {
+  function extractPageMetadata(language = 'en') {
     // Extract basic page information
     const title = document.title || 'Untitled Page';
     const url = window.location.href;
     const description = document.querySelector('meta[name="description"]')?.content ||
       document.querySelector('meta[property="og:description"]')?.content || '';
     const canonical = document.querySelector('link[rel="canonical"]')?.href || '';
-    const language = document.documentElement.lang || 'unknown';
+    const pageLang = document.documentElement.lang || 'unknown';
     const extractedAt = new Date().toLocaleString('ja-JP', {
       timeZone: 'Asia/Tokyo',
       year: 'numeric',
@@ -568,24 +568,54 @@ if (window.isExtensionActive) {
     const selectedClasses = selectedElement ? Array.from(selectedElement.classList).map(c => `.${c}`).join('') : '';
     const elementDescription = `${selectedTag}${selectedId}${selectedClasses}` || 'HTML要素';
 
-    // Generate contextual description
-    let contextualDescription = `# コンテンツコンテキスト\n\n`;
+    // Language-specific templates
+    const templates = {
+      en: {
+        contentContext: 'Content Context',
+        description: 'This Markdown document was extracted from a web page using HTML-to-Markdown conversion.',
+        sourceInfo: 'Source Information',
+        originalTitle: 'Original Page Title',
+        sourceUrl: 'Source URL',
+        canonicalUrl: 'Canonical URL',
+        canonicalNote: '(Different canonical URL is set)',
+        pageDescription: 'Page Description',
+        language: 'Language',
+        extractedAt: 'Extracted At'
+      },
+      ja: {
+        contentContext: 'コンテンツコンテキスト',
+        description: 'このMarkdown文書は、Webページの一部をHTML-to-Markdown変換によって抽出したものです。',
+        sourceInfo: 'ソース情報',
+        originalTitle: '元ページタイトル',
+        sourceUrl: 'ソースURL',
+        canonicalUrl: '正規URL',
+        canonicalNote: '(元URLとは異なる正規URLが設定されています)',
+        pageDescription: 'ページ説明',
+        language: '言語',
+        extractedAt: '抽出日時'
+      }
+    };
 
-    contextualDescription += `このMarkdown文書は、Webページの一部をHTML-to-Markdown変換によって抽出したものです。`;
-    contextualDescription += `元のページは「${title}」で、${extractedAt}に取得されました。\n\n`;
+    const t = templates[language] || templates.en;
+
+    // Generate contextual description
+    let contextualDescription = `# ${t.contentContext}\n\n`;
+
+    contextualDescription += `${t.description} `;
+    contextualDescription += `${language === 'ja' ? `元のページは「${title}」で、${extractedAt}に取得されました。` : `The original page is "${title}" and was extracted on ${extractedAt}.`}\n\n`;
 
     // Source Information Section
-    contextualDescription += `## ソース情報\n\n`;
-    contextualDescription += `- **元ページタイトル**: ${title}\n`;
-    contextualDescription += `- **ソースURL**: ${url}\n`;
+    contextualDescription += `## ${t.sourceInfo}\n\n`;
+    contextualDescription += `- **${t.originalTitle}**: ${title}\n`;
+    contextualDescription += `- **${t.sourceUrl}**: ${url}\n`;
     if (canonical && canonical !== url) {
-      contextualDescription += `- **正規URL**: ${canonical} (元URLとは異なる正規URLが設定されています)\n`;
+      contextualDescription += `- **${t.canonicalUrl}**: ${canonical} ${t.canonicalNote}\n`;
     }
     if (description) {
-      contextualDescription += `- **ページ説明**: ${description}\n`;
+      contextualDescription += `- **${t.pageDescription}**: ${description}\n`;
     }
-    contextualDescription += `- **言語**: ${language}\n`;
-    contextualDescription += `- **抽出日時**: ${extractedAt}\n\n`;
+    contextualDescription += `- **${t.language}**: ${pageLang}\n`;
+    contextualDescription += `- **${t.extractedAt}**: ${extractedAt}\n\n`;
 
     // Extraction Details Section
     contextualDescription += `## 抽出詳細\n\n`;
@@ -670,9 +700,9 @@ if (window.isExtensionActive) {
       let markdown = turndownService.turndown(html);
 
       // Check settings for metadata inclusion
-      chrome.storage.sync.get({ includeMetadata: true }, (result) => {
+      chrome.storage.sync.get({ includeMetadata: true, language: 'en' }, (result) => {
         if (result.includeMetadata || event.shiftKey) {
-          const metadata = extractPageMetadata();
+          const metadata = extractPageMetadata(result.language);
           markdown = metadata + markdown;
         }
 
