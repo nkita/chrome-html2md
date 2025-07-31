@@ -1,683 +1,158 @@
-if (window.isExtensionActive) {
-  // Avoid running the script twice
-} else {
-  window.isExtensionActive = true;
+// 既存の拡張機能UIをクリーンアップ
+function cleanupExistingExtension() {
+  // 既存のUI要素を全て削除
+  const existingElements = document.querySelectorAll('.html-to-markdown-extension-ui');
+  existingElements.forEach(element => {
+    if (element.parentNode) {
+      element.parentNode.removeChild(element);
+    }
+  });
   
-  // Global conversion mode setting
-  let conversionMode = 'selection'; // default
+  // イベントリスナーを削除
+  if (window.extensionMouseOverHandler) {
+    document.removeEventListener('mouseover', window.extensionMouseOverHandler);
+  }
+  if (window.extensionClickHandler) {
+    document.removeEventListener('click', window.extensionClickHandler, true);
+  }
+  if (window.extensionKeyDownHandler) {
+    document.removeEventListener('keydown', window.extensionKeyDownHandler);
+  }
+  
+  // グローバル参照をクリア
+  window.extensionInfoBanner = null;
+  window.extensionHighlightOverlay = null;
+  window.extensionInfoLabel = null;
+}
 
-  var turndownService = new TurndownService({
-    codeBlockStyle: 'fenced',
-    headingStyle: 'atx',
-    bulletListMarker: '-',
-    emDelimiter: '*',
-    strongDelimiter: '**'
-  });
+// 既存の拡張機能をクリーンアップしてから開始
+cleanupExistingExtension();
 
-  // Add a specific rule for <pre> tags to handle them as code blocks
-  turndownService.addRule('preToCodeBlock', {
-    filter: 'pre',
-    replacement: function (content, node) {
-      const code = node.textContent || '';
-      // Optionally, try to get the language from a class like 'language-js'
-      const codeLang = node.firstChild?.className?.match(/language-(\S+)/)?.[1] || '';
-      return '\n\n```' + codeLang + '\n' + code.trim() + '\n```\n\n';
-    }
-  });
+if (window.isExtensionActive) {
+  // 既に実行中の場合は一旦クリーンアップしてから再開
+  console.log('Extension already active, cleaning up and restarting...');
+  cleanupExistingExtension();
+}
 
-  // Enhanced table rule for better table conversion
-  turndownService.addRule('enhancedTable', {
-    filter: 'table',
-    replacement: function (content, node) {
-      const rows = Array.from(node.querySelectorAll('tr'));
-      if (rows.length === 0) return content;
+window.isExtensionActive = true;
 
-      let markdown = '\n\n';
-      let hasHeader = false;
+// Global conversion mode setting (重複宣言を防ぐ)
+if (typeof window.conversionMode === 'undefined') {
+  window.conversionMode = 'selection'; // default
+}
 
-      rows.forEach((row, rowIndex) => {
-        const cells = Array.from(row.querySelectorAll('th, td'));
-        if (cells.length === 0) return;
+// Turndownサービスを設定から作成 (重複宣言を防ぐ)
+if (typeof window.turndownService === 'undefined') {
+  window.turndownService = TurndownConfig.createService();
+}
 
-        // Check if this row contains header cells
-        const isHeaderRow = cells.some(cell => cell.tagName.toLowerCase() === 'th');
-        if (isHeaderRow) hasHeader = true;
+// カスタムルールは TurndownConfig で設定済み
 
-        // Build the row
-        const cellContents = cells.map(cell => {
-          return cell.textContent.trim().replace(/\|/g, '\\|').replace(/\n/g, ' ');
-        });
+// 選択された要素 (重複宣言を防ぐ)
+if (typeof window.selectedElement === 'undefined') {
+  window.selectedElement = null;
+}
 
-        markdown += '| ' + cellContents.join(' | ') + ' |\n';
+// --- UI Elements ---
+// UI要素を作成（常に新しく作成）
+function createUIElements() {
+  // ハイライトオーバーレイを作成
+  if (!window.extensionHighlightOverlay || !document.body.contains(window.extensionHighlightOverlay)) {
+    const highlightOverlay = document.createElement('div');
+    highlightOverlay.className = 'html-to-markdown-extension-ui';
+    Object.assign(highlightOverlay.style, {
+      position: 'absolute',
+      background: 'linear-gradient(135deg, rgba(66, 133, 244, 0.15), rgba(66, 133, 244, 0.25))',
+      border: '2px solid rgba(66, 133, 244, 0.6)',
+      borderRadius: '8px',
+      boxShadow: '0 4px 20px rgba(66, 133, 244, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+      backdropFilter: 'blur(4px)',
+      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+      zIndex: '9998',
+      pointerEvents: 'none',
+      opacity: '0'
+    });
 
-        // Add separator after header row
-        if (isHeaderRow || (rowIndex === 0 && !hasHeader)) {
-          const separator = cells.map(() => '---').join(' | ');
-          markdown += '| ' + separator + ' |\n';
-        }
-      });
-
-      return markdown + '\n';
-    }
-  });
-
-  // Enhanced blockquote rule
-  turndownService.addRule('enhancedBlockquote', {
-    filter: 'blockquote',
-    replacement: function (content, node) {
-      const lines = content.trim().split('\n');
-      const quotedLines = lines.map(line => '> ' + line.trim()).join('\n');
-      return '\n\n' + quotedLines + '\n\n';
-    }
-  });
-
-  // Enhanced list handling for nested lists
-  turndownService.addRule('enhancedList', {
-    filter: ['ul', 'ol'],
-    replacement: function (content, node, options) {
-      const isOrdered = node.tagName.toLowerCase() === 'ol';
-      const items = Array.from(node.children).filter(child => child.tagName.toLowerCase() === 'li');
-
-      if (items.length === 0) return content;
-
-      let markdown = '\n';
-      items.forEach((item, index) => {
-        const marker = isOrdered ? `${index + 1}. ` : '- ';
-        const itemContent = turndownService.turndown(item.innerHTML).trim();
-        const lines = itemContent.split('\n');
-
-        markdown += marker + lines[0] + '\n';
-        // Handle multi-line list items
-        for (let i = 1; i < lines.length; i++) {
-          markdown += '  ' + lines[i] + '\n';
-        }
-      });
-
-      return markdown + '\n';
-    }
-  });
-
-  // Enhanced code inline rule
-  turndownService.addRule('enhancedCode', {
-    filter: 'code',
-    replacement: function (content, node) {
-      // Don't process code inside pre tags (already handled by preToCodeBlock)
-      if (node.parentNode && node.parentNode.tagName.toLowerCase() === 'pre') {
-        return content;
-      }
-      const code = node.textContent || '';
-      return '`' + code + '`';
-    }
-  });
-
-  // Enhanced image rule with alt text and title
-  turndownService.addRule('enhancedImage', {
-    filter: 'img',
-    replacement: function (content, node) {
-      const src = node.getAttribute('src') || '';
-      const alt = node.getAttribute('alt') || '';
-      const title = node.getAttribute('title');
-
-      if (!src) return '';
-
-      let markdown = `![${alt}](${src}`;
-      if (title) {
-        markdown += ` "${title}"`;
-      }
-      markdown += ')';
-
-      return markdown;
-    }
-  });
-
-  // Enhanced link rule
-  turndownService.addRule('enhancedLink', {
-    filter: 'a',
-    replacement: function (content, node) {
-      const href = node.getAttribute('href');
-      const title = node.getAttribute('title');
-
-      if (!href) return content;
-
-      let markdown = `[${content}](${href}`;
-      if (title) {
-        markdown += ` "${title}"`;
-      }
-      markdown += ')';
-
-      return markdown;
-    }
-  });
-
-  // Horizontal rule (hr) support
-  turndownService.addRule('horizontalRule', {
-    filter: 'hr',
-    replacement: function () {
-      return '\n\n---\n\n';
-    }
-  });
-
-  // Definition lists (dl, dt, dd) support
-  turndownService.addRule('definitionList', {
-    filter: 'dl',
-    replacement: function (content, node) {
-      const items = Array.from(node.children);
-      let markdown = '\n\n';
-
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        if (item.tagName.toLowerCase() === 'dt') {
-          markdown += `**${item.textContent.trim()}**\n`;
-        } else if (item.tagName.toLowerCase() === 'dd') {
-          markdown += `: ${item.textContent.trim()}\n\n`;
-        }
-      }
-
-      return markdown;
-    }
-  });
-
-  // Details/Summary (collapsible content) support
-  turndownService.addRule('detailsSummary', {
-    filter: 'details',
-    replacement: function (content, node) {
-      const summary = node.querySelector('summary');
-      const summaryText = summary ? summary.textContent.trim() : 'Details';
-      const detailsContent = content.replace(summaryText, '').trim();
-
-      return `\n\n<details>\n<summary>${summaryText}</summary>\n\n${detailsContent}\n\n</details>\n\n`;
-    }
-  });
-
-  // Mark (highlighted text) support
-  turndownService.addRule('highlightedText', {
-    filter: 'mark',
-    replacement: function (content) {
-      return `==${content}==`;
-    }
-  });
-
-  // Strikethrough (del, s) support
-  turndownService.addRule('strikethrough', {
-    filter: ['del', 's', 'strike'],
-    replacement: function (content) {
-      return `~~${content}~~`;
-    }
-  });
-
-  // Subscript and Superscript support
-  turndownService.addRule('subscript', {
-    filter: 'sub',
-    replacement: function (content) {
-      return `~${content}~`;
-    }
-  });
-
-  turndownService.addRule('superscript', {
-    filter: 'sup',
-    replacement: function (content) {
-      return `^${content}^`;
-    }
-  });
-
-  // Keyboard input (kbd) support
-  turndownService.addRule('keyboard', {
-    filter: 'kbd',
-    replacement: function (content) {
-      return `<kbd>${content}</kbd>`;
-    }
-  });
-
-  // Abbreviation (abbr) support
-  turndownService.addRule('abbreviation', {
-    filter: 'abbr',
-    replacement: function (content, node) {
-      const title = node.getAttribute('title');
-      if (title) {
-        return `${content} (${title})`;
-      }
-      return content;
-    }
-  });
-
-  // Figure and figcaption support
-  turndownService.addRule('figure', {
-    filter: 'figure',
-    replacement: function (content, node) {
-      const figcaption = node.querySelector('figcaption');
-      const caption = figcaption ? figcaption.textContent.trim() : '';
-
-      if (caption) {
-        return `\n\n${content}\n\n*${caption}*\n\n`;
-      }
-      return `\n\n${content}\n\n`;
-    }
-  });
-
-  // Address support
-  turndownService.addRule('address', {
-    filter: 'address',
-    replacement: function (content) {
-      return `\n\n*${content.trim()}*\n\n`;
-    }
-  });
-
-  // Time element support
-  turndownService.addRule('time', {
-    filter: 'time',
-    replacement: function (content, node) {
-      const datetime = node.getAttribute('datetime');
-      if (datetime && datetime !== content.trim()) {
-        return `${content} (${datetime})`;
-      }
-      return content;
-    }
-  });
-
-  // Progress and meter elements (convert to text representation)
-  turndownService.addRule('progress', {
-    filter: 'progress',
-    replacement: function (content, node) {
-      const value = node.getAttribute('value') || '0';
-      const max = node.getAttribute('max') || '100';
-      const percentage = Math.round((parseFloat(value) / parseFloat(max)) * 100);
-      return `Progress: ${percentage}% (${value}/${max})`;
-    }
-  });
-
-  turndownService.addRule('meter', {
-    filter: 'meter',
-    replacement: function (content, node) {
-      const value = node.getAttribute('value') || '0';
-      const min = node.getAttribute('min') || '0';
-      const max = node.getAttribute('max') || '1';
-      return `Meter: ${value} (range: ${min}-${max})`;
-    }
-  });
-
-  // Remove extension UI elements
-  turndownService.addRule('removeExtensionUI', {
-    filter: function (node) {
-      // Remove elements created by this extension
-      return node.nodeType === 1 && 
-             (node.className === 'html-to-markdown-extension-ui' ||
-              node.classList?.contains('html-to-markdown-extension-ui'));
-    },
-    replacement: function () {
-      return '';
-    }
-  });
-
-  // Remove script, style, and other non-content elements
-  turndownService.addRule('removeNonContent', {
-    filter: ['script', 'style', 'noscript', 'meta', 'link', 'head', 'title'],
-    replacement: function () {
-      return '';
-    }
-  });
-
-  // Remove hidden elements and comments
-  turndownService.addRule('removeHidden', {
-    filter: function (node) {
-      // Remove elements with display: none or visibility: hidden
-      if (node.nodeType === 1) { // Element node
-        const style = window.getComputedStyle(node);
-        return style.display === 'none' || style.visibility === 'hidden';
-      }
-      // Remove comment nodes
-      return node.nodeType === 8;
-    },
-    replacement: function () {
-      return '';
-    }
-  });
-
-  // Handle form elements appropriately
-  turndownService.addRule('formElements', {
-    filter: ['input', 'textarea', 'select', 'option', 'button', 'form'],
-    replacement: function (content, node) {
-      const tagName = node.tagName.toLowerCase();
-      
-      switch (tagName) {
-        case 'input':
-          const type = node.getAttribute('type') || 'text';
-          const value = node.getAttribute('value') || '';
-          const placeholder = node.getAttribute('placeholder') || '';
-          return `[${type.toUpperCase()} INPUT${value ? ': ' + value : ''}${placeholder ? ' (' + placeholder + ')' : ''}]`;
-        
-        case 'textarea':
-          return `[TEXTAREA: ${node.value || node.textContent || ''}]`;
-        
-        case 'select':
-          const selectedOption = node.querySelector('option[selected]');
-          const selectedText = selectedOption ? selectedOption.textContent : '';
-          return `[SELECT${selectedText ? ': ' + selectedText : ''}]`;
-        
-        case 'button':
-          return `[BUTTON: ${node.textContent || ''}]`;
-        
-        case 'form':
-          return content; // Process form content normally
-        
-        default:
-          return `[${tagName.toUpperCase()}]`;
-      }
-    }
-  });
-
-  // Preserve certain HTML elements that don't have Markdown equivalents
-  turndownService.addRule('preserveHtml', {
-    filter: ['video', 'audio', 'iframe', 'embed', 'object', 'canvas', 'svg'],
-    replacement: function (content, node) {
-      return node.outerHTML;
-    }
-  });
-
-  let selectedElement = null;
-
-  // --- UI Elements ---
-  const highlightOverlay = document.createElement('div');
-  highlightOverlay.className = 'html-to-markdown-extension-ui';
-  Object.assign(highlightOverlay.style, {
-    position: 'absolute',
-    background: 'linear-gradient(135deg, rgba(66, 133, 244, 0.15), rgba(66, 133, 244, 0.25))',
-    border: '2px solid rgba(66, 133, 244, 0.6)',
-    borderRadius: '8px',
-    boxShadow: '0 4px 20px rgba(66, 133, 244, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
-    backdropFilter: 'blur(4px)',
-    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-    zIndex: '9998',
-    pointerEvents: 'none',
-    opacity: '0'
-  });
-
-  const infoLabel = document.createElement('div');
-  infoLabel.className = 'html-to-markdown-extension-ui';
-  Object.assign(infoLabel.style, {
-    position: 'absolute',
-    background: 'rgba(0, 0, 0, 0.85)',
-    backdropFilter: 'blur(12px)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: '6px',
-    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
-    color: 'white',
-    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    fontSize: '13px',
-    fontWeight: '500',
-    padding: '6px 12px',
-    transition: 'all 0.2s ease-out',
-    zIndex: '9999',
-    pointerEvents: 'none',
-    opacity: '0'
-  });
-
-  // UI elements will be created in selection mode
-  let infoBanner = null;
-
-  document.body.appendChild(highlightOverlay);
-  document.body.appendChild(infoLabel);
-
-  // Check if clipboard API is available
-  function isClipboardAvailable() {
-    return navigator.clipboard &&
-      typeof navigator.clipboard.writeText === 'function' &&
-      window.isSecureContext;
+    document.body.appendChild(highlightOverlay);
+    window.extensionHighlightOverlay = highlightOverlay;
   }
 
-  // --- Global Clipboard Functions ---
-  function copyToClipboard(markdown, isSelectionMode = false) {
-    // Try modern clipboard API first, fallback to legacy method
-    if (isClipboardAvailable()) {
-      navigator.clipboard.writeText(markdown).then(() => {
-        if (isSelectionMode) {
-          showNotification('Copied to clipboard!');
-          cleanup();
-        }
-        // For full page mode, notification is handled separately
-      }).catch(err => {
-        console.error('Failed to copy with clipboard API: ', err);
-        fallbackCopyToClipboard(markdown, isSelectionMode);
-      });
-    } else {
-      fallbackCopyToClipboard(markdown, isSelectionMode);
-    }
+  // 情報ラベルを作成
+  if (!window.extensionInfoLabel || !document.body.contains(window.extensionInfoLabel)) {
+    const infoLabel = document.createElement('div');
+    infoLabel.className = 'html-to-markdown-extension-ui';
+    Object.assign(infoLabel.style, {
+      position: 'absolute',
+      background: 'rgba(0, 0, 0, 0.85)',
+      backdropFilter: 'blur(12px)',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '6px',
+      boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
+      color: 'white',
+      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontSize: '13px',
+      fontWeight: '500',
+      padding: '6px 12px',
+      transition: 'all 0.2s ease-out',
+      zIndex: '9999',
+      pointerEvents: 'none',
+      opacity: '0'
+    });
+
+    document.body.appendChild(infoLabel);
+    window.extensionInfoLabel = infoLabel;
   }
+}
 
-  // Fallback clipboard function for older browsers or insecure contexts
-  function fallbackCopyToClipboard(text, isSelectionMode = false) {
-    try {
-      // Create a temporary textarea element
-      const textArea = document.createElement('textarea');
-      textArea.className = 'html-to-markdown-extension-ui';
-      textArea.value = text;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
-      textArea.style.top = '-999999px';
-      textArea.style.opacity = '0';
-      textArea.style.pointerEvents = 'none';
-      document.body.appendChild(textArea);
+// UI要素を作成
+createUIElements();
 
-      // Select and copy the text
-      textArea.focus();
-      textArea.select();
-      textArea.setSelectionRange(0, 99999); // For mobile devices
-
-      const successful = document.execCommand('copy');
-      document.body.removeChild(textArea);
-
-      if (successful) {
-        if (isSelectionMode) {
-          showNotification('Copied to clipboard!');
-          cleanup();
-        }
-        // For full page mode, notification is handled separately
-      } else {
-        showNotification('Copy failed - please copy manually');
-        console.log('Markdown content:', text);
-      }
-    } catch (err) {
-      console.error('Fallback copy failed: ', err);
-      showNotification('Copy failed - check console for content');
-      console.log('Markdown content:', text);
+  // クリップボード機能は CommonUtils を使用
+// クリップボード機能は CommonUtils を使用
+async function copyToClipboard(markdown, isSelectionMode = false) {
+  const success = await CommonUtils.copyToClipboard(markdown);
+  
+  if (success) {
+    if (isSelectionMode) {
+      CommonUtils.showNotification('Copied to clipboard!');
+      cleanup();
     }
-    
+  } else {
+    CommonUtils.showNotification('Copy failed - please copy manually', 'error');
+    console.log('Markdown content:', markdown);
     if (isSelectionMode) {
       cleanup();
     }
   }
+}
 
-  function showNotification(message) {
-    const notification = document.createElement('div');
-    notification.className = 'html-to-markdown-extension-ui';
-    notification.textContent = message;
-    Object.assign(notification.style, {
-      position: 'fixed',
-      top: '70px',
-      left: '50%',
-      transform: 'translateX(-50%) translateY(-20px)',
-      background: 'rgba(16, 185, 129, 0.95)',
-      backdropFilter: 'blur(20px)',
-      border: '1px solid rgba(255, 255, 255, 0.2)',
-      borderRadius: '12px',
-      boxShadow: '0 8px 32px rgba(16, 185, 129, 0.3)',
-      color: 'white',
-      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontSize: '15px',
-      fontWeight: '500',
-      padding: '12px 20px',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      zIndex: '10001',
-      opacity: '0',
-      pointerEvents: 'none'
-    });
-    document.body.appendChild(notification);
-
-    // Animate entrance
-    setTimeout(() => {
-      notification.style.opacity = '1';
-      notification.style.transform = 'translateX(-50%) translateY(0)';
-    }, 50);
-
-    // Animate exit and remove
-    setTimeout(() => {
-      notification.style.opacity = '0';
-      notification.style.transform = 'translateX(-50%) translateY(-20px)';
-      setTimeout(() => {
-        if (notification.parentNode) {
-          document.body.removeChild(notification);
-        }
-      }, 300);
-    }, 2000);
-  }
-
-  // --- Metadata Extraction ---
-  function extractPageMetadata(language = 'en') {
-    // Extract basic page information
-    const title = document.title || 'Untitled Page';
-    const url = window.location.href;
-    const description = document.querySelector('meta[name="description"]')?.content ||
-      document.querySelector('meta[property="og:description"]')?.content || '';
-    const canonical = document.querySelector('link[rel="canonical"]')?.href || '';
-    const pageLang = document.documentElement.lang || 'unknown';
-    const extractedAt = new Date().toLocaleString('ja-JP', {
-      timeZone: 'Asia/Tokyo',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-
-    // Extract SEO and social media metadata
-    const keywords = document.querySelector('meta[name="keywords"]')?.content || '';
-    const author = document.querySelector('meta[name="author"]')?.content || '';
-
-    // Open Graph tags
-    const ogTitle = document.querySelector('meta[property="og:title"]')?.content || '';
-    const ogType = document.querySelector('meta[property="og:type"]')?.content || '';
-    const ogImage = document.querySelector('meta[property="og:image"]')?.content || '';
-    const ogSiteName = document.querySelector('meta[property="og:site_name"]')?.content || '';
-
-    // Twitter Card tags
-    const twitterCard = document.querySelector('meta[name="twitter:card"]')?.content || '';
-    const twitterSite = document.querySelector('meta[name="twitter:site"]')?.content || '';
-
-    // Determine selected element context
-    const selectedTag = selectedElement ? selectedElement.tagName.toLowerCase() : 'unknown';
-    const selectedId = selectedElement?.id ? `#${selectedElement.id}` : '';
-    const selectedClasses = selectedElement ? Array.from(selectedElement.classList).map(c => `.${c}`).join('') : '';
-    const elementDescription = `${selectedTag}${selectedId}${selectedClasses}` || 'HTML要素';
-
-    // Language-specific templates
-    const templates = {
-      en: {
-        contentContext: 'Content Context',
-        description: 'This Markdown document was extracted from a web page using HTML-to-Markdown conversion.',
-        sourceInfo: 'Source Information',
-        originalTitle: 'Original Page Title',
-        sourceUrl: 'Source URL',
-        canonicalUrl: 'Canonical URL',
-        canonicalNote: '(Different canonical URL is set)',
-        pageDescription: 'Page Description',
-        language: 'Language',
-        extractedAt: 'Extracted At'
-      },
-      ja: {
-        contentContext: 'コンテンツコンテキスト',
-        description: 'このMarkdown文書は、Webページの一部をHTML-to-Markdown変換によって抽出したものです。',
-        sourceInfo: 'ソース情報',
-        originalTitle: '元ページタイトル',
-        sourceUrl: 'ソースURL',
-        canonicalUrl: '正規URL',
-        canonicalNote: '(元URLとは異なる正規URLが設定されています)',
-        pageDescription: 'ページ説明',
-        language: '言語',
-        extractedAt: '抽出日時'
-      }
-    };
-
-    const t = templates[language] || templates.en;
-
-    // Generate contextual description
-    let contextualDescription = `# ${t.contentContext}\n\n`;
-
-    contextualDescription += `${t.description} `;
-    contextualDescription += `${language === 'ja' ? `元のページは「${title}」で、${extractedAt}に取得されました。` : `The original page is "${title}" and was extracted on ${extractedAt}.`}\n\n`;
-
-    // Source Information Section
-    contextualDescription += `## ${t.sourceInfo}\n\n`;
-    contextualDescription += `- **${t.originalTitle}**: ${title}\n`;
-    contextualDescription += `- **${t.sourceUrl}**: ${url}\n`;
-    if (canonical && canonical !== url) {
-      contextualDescription += `- **${t.canonicalUrl}**: ${canonical} ${t.canonicalNote}\n`;
-    }
-    if (description) {
-      contextualDescription += `- **${t.pageDescription}**: ${description}\n`;
-    }
-    contextualDescription += `- **${t.language}**: ${pageLang}\n`;
-    contextualDescription += `- **${t.extractedAt}**: ${extractedAt}\n\n`;
-
-    // Extraction Details Section
-    contextualDescription += `## 抽出詳細\n\n`;
-    contextualDescription += `このコンテンツは、ブラウザ拡張機能を使用してHTMLからMarkdownに変換されました。`;
-    contextualDescription += `変換対象は「${elementDescription}」要素で、ページ全体ではなく選択された部分のみが含まれています。\n\n`;
-
-    // Content Limitations Section
-    contextualDescription += `## コンテンツの範囲と制限\n\n`;
-    contextualDescription += `- このMarkdownは元のWebページの一部分のみを表現しています\n`;
-    contextualDescription += `- ナビゲーションメニュー、サイドバー、フッターなどの周辺コンテンツは含まれていません\n`;
-    contextualDescription += `- JavaScriptによって動的に生成されるコンテンツや、インタラクティブな要素は失われている可能性があります\n`;
-    contextualDescription += `- 変換時点での静的なHTMLコンテンツのみが保持されています\n\n`;
-
-    // SEO and Social Context (if available)
-    if (keywords || author || ogTitle || twitterCard) {
-      contextualDescription += `## SEO・ソーシャルメディアコンテキスト\n\n`;
-
-      if (keywords) {
-        contextualDescription += `**キーワード**: ${keywords} - このページの主要トピックやSEO対象キーワードを示しています。\n\n`;
-      }
-
-      if (author) {
-        contextualDescription += `**著者**: ${author} - このコンテンツの作成者情報です。\n\n`;
-      }
-
-      if (ogTitle || ogType || ogImage || ogSiteName) {
-        contextualDescription += `**Open Graph情報**: このページはソーシャルメディアでの共有を想定して設計されています。`;
-        if (ogType) contextualDescription += ` コンテンツタイプは「${ogType}」として分類されています。`;
-        if (ogSiteName) contextualDescription += ` サイト名は「${ogSiteName}」です。`;
-        contextualDescription += `\n\n`;
-      }
-
-      if (twitterCard) {
-        contextualDescription += `**Twitter Card**: Twitter上での表示形式として「${twitterCard}」が設定されています。`;
-        if (twitterSite) contextualDescription += ` 関連Twitterアカウント: ${twitterSite}`;
-        contextualDescription += `\n\n`;
-      }
-    }
-
-    contextualDescription += `---\n\n`;
-    return contextualDescription;
-  }
+  // メタデータ抽出は MetadataExtractor を使用
 
   // --- Event Handlers ---
-  function handleMouseOver(event) {
-    // If the element is inside a pre, select the pre element itself
-    const codeBlock = event.target.closest('pre');
-    selectedElement = codeBlock || event.target;
+function handleMouseOver(event) {
+  // If the element is inside a pre, select the pre element itself
+  const codeBlock = event.target.closest('pre');
+  window.selectedElement = codeBlock || event.target;
 
-    const rect = selectedElement.getBoundingClientRect();
+  const rect = window.selectedElement.getBoundingClientRect();
 
-    // Update highlight overlay with smooth animation
+  // Update highlight overlay with smooth animation
+  const highlightOverlay = window.extensionHighlightOverlay;
+  if (highlightOverlay) {
     highlightOverlay.style.width = `${rect.width}px`;
     highlightOverlay.style.height = `${rect.height}px`;
     highlightOverlay.style.top = `${rect.top + window.scrollY}px`;
     highlightOverlay.style.left = `${rect.left + window.scrollX}px`;
     highlightOverlay.style.opacity = '1';
+  }
 
-    // Update info label with smooth animation
-    const tag = selectedElement.tagName.toLowerCase();
-    const id = selectedElement.id ? `#${selectedElement.id}` : '';
-    const classes = Array.from(selectedElement.classList).map(c => `.${c}`).join('');
+  // Update info label with smooth animation
+  const tag = window.selectedElement.tagName.toLowerCase();
+  const id = window.selectedElement.id ? `#${window.selectedElement.id}` : '';
+  const classes = Array.from(window.selectedElement.classList).map(c => `.${c}`).join('');
+  const infoLabel = window.extensionInfoLabel;
+  
+  if (infoLabel) {
     infoLabel.textContent = `${tag}${id}${classes}`;
 
     // Position info label above the element
@@ -688,143 +163,161 @@ if (window.isExtensionActive) {
     infoLabel.style.left = `${labelLeft}px`;
     infoLabel.style.opacity = '1';
   }
+}
 
-  function handleClick(event) {
-    event.preventDefault();
-    event.stopPropagation();
+function handleClick(event) {
+  event.preventDefault();
+  event.stopPropagation();
 
-    if (selectedElement) {
-      // If the user clicked inside a code block, convert the whole block.
-      const elementToConvert = selectedElement.closest('pre') || selectedElement;
-      const html = elementToConvert.outerHTML;
-      let markdown = turndownService.turndown(html);
+  if (window.selectedElement) {
+    // If the user clicked inside a code block, convert the whole block.
+    const elementToConvert = window.selectedElement.closest('pre') || window.selectedElement;
+    const html = elementToConvert.outerHTML;
+    let markdown = window.turndownService.turndown(html);
 
-      // Check settings for metadata inclusion
-      chrome.storage.sync.get({ includeMetadata: true, language: 'en' }, (result) => {
-        if (result.includeMetadata || event.shiftKey) {
-          const metadata = extractPageMetadata(result.language);
-          markdown = metadata + markdown;
-        }
-
-        // Copy to clipboard (selection mode)
-        copyToClipboard(markdown, true);
-      });
-    }
-  }
-
-  function handleKeyDown(event) {
-    if (event.key === 'Escape') {
-      cleanup();
-    }
-  }
-
-  // --- Cleanup ---
-  function cleanup() {
-    document.removeEventListener('mouseover', handleMouseOver);
-    document.removeEventListener('click', handleClick, true);
-    document.removeEventListener('keydown', handleKeyDown);
-
-    // Get UI elements (both old and new references)
-    const banner = window.extensionInfoBanner || infoBanner;
-    const overlay = highlightOverlay;
-    const label = infoLabel;
-
-    // Animate elements out before removing
-    if (banner && banner.parentNode) {
-      banner.style.opacity = '0';
-      banner.style.transform = 'translateX(-50%) translateY(-20px)';
-    }
-    if (overlay && overlay.parentNode) {
-      overlay.style.opacity = '0';
-    }
-    if (label && label.parentNode) {
-      label.style.opacity = '0';
-    }
-
-    // Remove elements after animation
-    setTimeout(() => {
-      if (overlay && overlay.parentNode) document.body.removeChild(overlay);
-      if (label && label.parentNode) document.body.removeChild(label);
-      if (banner && banner.parentNode) document.body.removeChild(banner);
-      
-      // Clean up references
-      window.extensionInfoBanner = null;
-    }, 300);
-
-    window.isExtensionActive = false;
-  }
-
-  // --- Message Listener ---
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log('Message received:', message);
-    if (message.action === 'setConversionMode') {
-      conversionMode = message.conversionMode;
-      console.log('Conversion mode set to:', conversionMode);
-      
-      // If full page mode, convert immediately and close
-      if (conversionMode === 'fullpage') {
-        console.log('Starting full page conversion');
-        convertFullPage();
-      } else {
-        console.log('Starting selection mode');
-        // Initialize selection mode
-        initializeSelectionMode();
+    // Check settings for metadata inclusion
+    chrome.storage.sync.get({ includeMetadata: true, language: 'en' }, (result) => {
+      if (result.includeMetadata || event.shiftKey) {
+        const metadata = MetadataExtractor.extractPageMetadata(window.selectedElement, result.language);
+        markdown = metadata + markdown;
       }
+
+      // Copy to clipboard (selection mode)
+      copyToClipboard(markdown, true);
+    });
+  }
+}
+
+function handleKeyDown(event) {
+  if (event.key === 'Escape') {
+    cleanup();
+  }
+}
+
+  // グローバル参照として保存（クリーンアップ用）
+  window.extensionMouseOverHandler = handleMouseOver;
+  window.extensionClickHandler = handleClick;
+  window.extensionKeyDownHandler = handleKeyDown;
+
+// --- Cleanup ---
+function cleanup() {
+  // イベントリスナーを削除
+  document.removeEventListener('mouseover', window.extensionMouseOverHandler);
+  document.removeEventListener('click', window.extensionClickHandler, true);
+  document.removeEventListener('keydown', window.extensionKeyDownHandler);
+
+  // 全ての拡張機能UI要素を取得
+  const allExtensionElements = document.querySelectorAll('.html-to-markdown-extension-ui');
+  
+  // アニメーションで要素を非表示にする
+  allExtensionElements.forEach(element => {
+    if (element.style.position === 'fixed') {
+      // バナー系要素
+      element.style.opacity = '0';
+      element.style.transform = 'translateX(-50%) translateY(-20px)';
+    } else {
+      // オーバーレイ系要素
+      element.style.opacity = '0';
     }
   });
 
-  // --- Full Page Conversion ---
-  function convertFullPage() {
-    console.log('convertFullPage called');
-    try {
-      // Get the main content or entire body
-      const contentElement = document.querySelector('main') || 
-                           document.querySelector('article') || 
-                           document.querySelector('.content') || 
-                           document.querySelector('#content') || 
-                           document.body;
-      
-      console.log('Content element found:', contentElement.tagName);
-      const html = contentElement.outerHTML;
-      let markdown = turndownService.turndown(html);
-      console.log('Markdown generated, length:', markdown.length);
+  // アニメーション後に要素を削除
+  setTimeout(() => {
+    allExtensionElements.forEach(element => {
+      if (element.parentNode) {
+        element.parentNode.removeChild(element);
+      }
+    });
+    
+    // グローバル参照をクリア
+    window.extensionInfoBanner = null;
+    window.extensionHighlightOverlay = null;
+    window.extensionInfoLabel = null;
+    window.extensionMouseOverHandler = null;
+    window.extensionClickHandler = null;
+    window.extensionKeyDownHandler = null;
+  }, 300);
 
-      // Check settings for metadata inclusion
-      chrome.storage.sync.get({ includeMetadata: true, language: 'en' }, (result) => {
-        if (result.includeMetadata) {
-          const metadata = extractPageMetadata(result.language);
-          markdown = metadata + markdown;
-        }
+  window.isExtensionActive = false;
+}
 
-        // Copy to clipboard (full page mode)
-        copyToClipboard(markdown, false);
-        
-        // Show success notification with language support
-        const successMessage = result.language === 'ja' ? 
-          'ページ全体をクリップボードに変換しました！' : 
-          'Full page converted to clipboard!';
-        showNotification(successMessage);
-        
-        // Clean up - no selection interface needed
-        window.isExtensionActive = false;
-      });
-      
-    } catch (error) {
-      console.error('Error in full page conversion:', error);
-      const errorMessage = 'Conversion failed - please try again';
-      showNotification(errorMessage);
+  // --- Message Listener ---
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('Message received:', message);
+  if (message.action === 'setConversionMode') {
+    window.conversionMode = message.conversionMode;
+    console.log('Conversion mode set to:', window.conversionMode);
+    
+    // If full page mode, convert immediately and close
+    if (window.conversionMode === 'fullpage') {
+      console.log('Starting full page conversion');
+      convertFullPage();
+    } else {
+      console.log('Starting selection mode');
+      // Initialize selection mode
+      initializeSelectionMode();
     }
   }
+});
+
+  // --- Full Page Conversion ---
+function convertFullPage() {
+  console.log('convertFullPage called');
+  try {
+    // Get the main content or entire body
+    const contentElement = document.querySelector('main') || 
+                         document.querySelector('article') || 
+                         document.querySelector('.content') || 
+                         document.querySelector('#content') || 
+                         document.body;
+    
+    console.log('Content element found:', contentElement.tagName);
+    const html = contentElement.outerHTML;
+    let markdown = window.turndownService.turndown(html);
+    console.log('Markdown generated, length:', markdown.length);
+
+    // Check settings for metadata inclusion
+    chrome.storage.sync.get({ includeMetadata: true, language: 'en' }, (result) => {
+      if (result.includeMetadata) {
+        const metadata = MetadataExtractor.extractPageMetadata(null, result.language);
+        markdown = metadata + markdown;
+      }
+
+      // Copy to clipboard (full page mode)
+      copyToClipboard(markdown, false);
+      
+      // Show success notification with language support
+      const successMessage = result.language === 'ja' ? 
+        'ページ全体をクリップボードに変換しました！' : 
+        'Full page converted to clipboard!';
+      CommonUtils.showNotification(successMessage);
+      
+      // Clean up - no selection interface needed
+      window.isExtensionActive = false;
+    });
+    
+  } catch (error) {
+    console.error('Error in full page conversion:', error);
+    const errorMessage = 'Conversion failed - please try again';
+    CommonUtils.showNotification(errorMessage, 'error');
+  }
+}
 
   // --- Selection Mode Initialization ---
   function initializeSelectionMode() {
+    // 既存のUI要素をクリーンアップ
+    cleanupExistingExtension();
+    
+    // UI要素を確実に作成
+    createUIElements();
+    
     // Show selection interface
     showSelectionInterface();
     
     // Initialize selection event listeners
-    document.addEventListener('mouseover', handleMouseOver);
-    document.addEventListener('click', handleClick, { capture: true, once: true });
-    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mouseover', window.extensionMouseOverHandler);
+    document.addEventListener('click', window.extensionClickHandler, { capture: true, once: true });
+    document.addEventListener('keydown', window.extensionKeyDownHandler);
   }
 
   // --- Show Selection Interface ---
@@ -867,4 +360,3 @@ if (window.isExtensionActive) {
     // Store reference for cleanup
     window.extensionInfoBanner = infoBanner;
   }
-}

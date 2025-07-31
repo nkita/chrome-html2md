@@ -16,6 +16,9 @@ cp background.js dist/
 cp content.js dist/
 cp turndown.js dist/
 
+# 共通ライブラリ
+cp -r lib dist/
+
 # ポップアップ関連ファイル
 cp popup.html dist/
 cp popup.js dist/

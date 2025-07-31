@@ -163,55 +163,34 @@ class SettingsManager {
    * Load settings from Chrome storage
    */
   async loadSettings() {
-    try {
-      const result = await chrome.storage.sync.get(this.defaultSettings);
-      
-      // Update UI with loaded settings
-      if (this.metadataToggle) {
-        this.metadataToggle.checked = result.includeMetadata;
-      }
-      
-      if (this.languageSelect) {
-        this.languageSelect.value = result.language;
-      }
-
-      if (this.conversionModeSelect) {
-        this.conversionModeSelect.value = result.conversionMode;
-      }
-
-      // Apply language
-      this.applyLanguage(result.language);
-      
-      console.log('Settings loaded:', result);
-    } catch (error) {
-      console.error('Error loading settings:', error);
-      // Use default settings if loading fails
-      if (this.metadataToggle) {
-        this.metadataToggle.checked = this.defaultSettings.includeMetadata;
-      }
-      
-      if (this.languageSelect) {
-        this.languageSelect.value = this.defaultSettings.language;
-      }
-
-      if (this.conversionModeSelect) {
-        this.conversionModeSelect.value = this.defaultSettings.conversionMode;
-      }
-
-      // Apply default language
-      this.applyLanguage(this.defaultSettings.language);
+    const result = await CommonUtils.loadSettings(this.defaultSettings);
+    
+    // Update UI with loaded settings
+    if (this.metadataToggle) {
+      this.metadataToggle.checked = result.includeMetadata;
     }
+    
+    if (this.languageSelect) {
+      this.languageSelect.value = result.language;
+    }
+
+    if (this.conversionModeSelect) {
+      this.conversionModeSelect.value = result.conversionMode;
+    }
+
+    // Apply language
+    this.applyLanguage(result.language);
+    
+    console.log('Settings loaded:', result);
   }
 
   /**
    * Save settings to Chrome storage
    */
   async saveSettings(settings) {
-    try {
-      await chrome.storage.sync.set(settings);
+    const success = await CommonUtils.saveSettings(settings);
+    if (success) {
       console.log('Settings saved:', settings);
-    } catch (error) {
-      console.error('Error saving settings:', error);
     }
   }
 

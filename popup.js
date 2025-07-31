@@ -177,13 +177,7 @@ class PopupManager {
    * Get current active tab information
    */
   async getCurrentTab() {
-    try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      this.currentTab = tab;
-    } catch (error) {
-      console.error('Error getting current tab:', error);
-      this.currentTab = null;
-    }
+    this.currentTab = await CommonUtils.getCurrentTab();
   }
 
   /**
@@ -218,20 +212,7 @@ class PopupManager {
    * Check if URL is for content script injection
    */
   isRestrictedUrl(url) {
-    const restrictedPrefixes = [
-      'chrome://',
-      'chrome-extension://',
-      'moz-extension://',
-      'https://chrome.google.com',
-      'https://chromewebstore.google.com',
-      'edge://',
-      'about:',
-      // 'file://',
-      'data:',
-      'javascript:'
-    ];
-
-    return restrictedPrefixes.some(prefix => url.startsWith(prefix));
+    return CommonUtils.isRestrictedUrl(url);
   }
 
   /**

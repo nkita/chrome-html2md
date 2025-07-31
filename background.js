@@ -32,20 +32,39 @@ function handleScreenSelection(tabId, conversionMode = 'selection') {
         return;
       }
       
-      // Execute the script injection with conversion mode
+      // 既存の拡張機能をクリーンアップしてからスクリプトを注入
       chrome.scripting.executeScript({
         target: { tabId: tabId },
-        files: ["turndown.js", "content.js"]
+        func: () => {
+          // 既存の拡張機能UI要素をクリーンアップ
+          const existingElements = document.querySelectorAll('.html-to-markdown-extension-ui');
+          existingElements.forEach(element => {
+            if (element.parentNode) {
+              element.parentNode.removeChild(element);
+            }
+          });
+          window.isExtensionActive = false;
+        }
       }, () => {
         if (chrome.runtime.lastError) {
-          console.error("Error injecting scripts:", chrome.runtime.lastError);
-        } else {
-          // Send conversion mode to content script
-          chrome.tabs.sendMessage(tabId, {
-            action: 'setConversionMode',
-            conversionMode: conversionMode
-          });
+          console.error("Error cleaning up existing extension:", chrome.runtime.lastError);
         }
+        
+        // Execute the script injection with conversion mode
+        chrome.scripting.executeScript({
+          target: { tabId: tabId },
+          files: ["lib/common.js", "lib/turndown-config.js", "lib/metadata-extractor.js", "turndown.js", "content.js"]
+        }, () => {
+          if (chrome.runtime.lastError) {
+            console.error("Error injecting scripts:", chrome.runtime.lastError);
+          } else {
+            // Send conversion mode to content script
+            chrome.tabs.sendMessage(tabId, {
+              action: 'setConversionMode',
+              conversionMode: conversionMode
+            });
+          }
+        });
       });
     });
   } catch (error) {
